@@ -262,6 +262,10 @@ class StorageTreasuresScraper:
             else None
         )
 
+        # ── Skip ended auctions ───────────────────────────────────────
+        if end_time and end_time < datetime.utcnow():
+            return False
+
         # ── Existing → update only live fields ────────────────────────
         existing = (
             db.query(Listing)
