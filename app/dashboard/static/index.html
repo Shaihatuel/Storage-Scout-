@@ -1823,7 +1823,7 @@ async function loadPnL() {
     `<tr><td colspan="8"><div class="loading-box"><div class="spin"></div> Loading…</div></td></tr>`;
   try {
     const [entries, summary] = await Promise.all([
-      api('/api/pnl/'),
+      api('/api/pnl'),
       api('/api/pnl/summary'),
     ]);
     S.pnl = entries;
@@ -1889,7 +1889,7 @@ async function loadAnalysis() {
       api('/api/analysis/win-loss-by-size'),
       api('/api/analysis/bid-efficiency'),
     ]);
-    const pnlData = S.pnl.length ? S.pnl : await api('/api/pnl/');
+    const pnlData = S.pnl.length ? S.pnl : await api('/api/pnl');
 
     if (!byTag.length && !bySize.length && !pnlData.length) {
       wrap.innerHTML = `<div class="empty-state">
