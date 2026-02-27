@@ -27,8 +27,13 @@ GET https://api.st-prd-1.aws.storagetreasures.com/p/auctions
 - image: {image_path, image_path_large, image_path_giant}
 - total_records (pagination total)
 
+## Ended Auction Filter (applied Feb 2026)
+In _upsert(), after parsing end_time from expire_date.utc.datetime:
+  if end_time and end_time < datetime.utcnow(): return False
+This prevents ended auctions from being saved to the DB during any scrape.
+
 ## 404 Fix (applied)
-`@router.get("/")` with prefix `/api/listings` registers route as `/api/listings/`
+@router.get("/") with prefix /api/listings registers route as /api/listings/
 StaticFiles mount at "/" intercepts the redirect → 404
-Fix: use `@router.get("")` (empty string) for all collection endpoints
+Fix: use @router.get("") (empty string) for all collection endpoints
 Applied to: listings.py, bidding.py, pnl.py

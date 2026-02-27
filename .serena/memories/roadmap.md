@@ -1,23 +1,27 @@
 # storage-scraper — Feature Roadmap
 
-## Phase 1 — Foundation (current)
+## Phase 1 — Foundation (complete)
 - [x] SQLAlchemy models: Listing, Image, Tag, BidRecord, PnLEntry, InventoryItem, AIRecommendation
 - [x] FastAPI app with all 5 router modules
-- [x] StorageTreasures scraper skeleton (httpx + BeautifulSoup)
+- [x] StorageTreasures scraper skeleton (httpx + Playwright hybrid)
 - [x] Heuristic AI recommender (rule-based scoring)
 - [x] P&L CRUD + summary endpoint
+- [x] Fixed route ordering bug (/summary vs /{pnl_id})
+- [x] Fixed trailing slash 404 on /api/pnl/
+- [x] Filter ended auctions from scrape results
 
-## Phase 2 — Dashboard UI
-- [ ] HTML/CSS/JS dashboard at `app/dashboard/static/`
-- [ ] Listings grid view with AI recommendation badges
-- [ ] Unit detail page with images, tags, bid form
-- [ ] P&L table with chart (win/loss over time)
-- [ ] Analysis charts (by tag, by size)
+## Phase 2 — Dashboard UI (complete)
+- [x] HTML/CSS/JS dashboard at `app/dashboard/static/`
+- [x] Listings grid view with AI recommendation badges
+- [x] Unit detail page with images, tags, bid form
+- [x] P&L table with chart (win/loss over time)
+- [x] Analysis charts (by tag, by size)
 
-## Phase 3 — Scraper Hardening
-- [ ] Parse auction end time from StorageTreasures HTML
-- [ ] Fetch full listing detail page (description, all images)
-- [ ] Add Playwright fallback for JS-rendered content
+## Phase 3 — Scraper Hardening (in progress)
+- [x] Parse auction end time from StorageTreasures API
+- [x] Filter out ended auctions during scrape
+- [x] Playwright fallback for JS-rendered content
+- [ ] Fetch full listing detail page (all images)
 - [ ] Scheduled scraping (APScheduler or cron)
 - [ ] HTML fixture tests for parser resilience
 

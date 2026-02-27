@@ -1,6 +1,10 @@
 # Architecture
 
 ## Directory layout
+cat > ~/storage-scraper/.serena/memories/architecture.md << 'EOF'
+# Architecture
+
+## Directory layout
 ```
 storage-scraper/
   app/
@@ -10,7 +14,7 @@ storage-scraper/
     api/
       listings.py      — listings CRUD + watch/bid/notes/status toggles
       bidding.py       — bid records
-      pnl.py           — P&L entries
+      pnl.py           — P&L entries (/summary must be above /{pnl_id})
       analysis.py      — win/loss analysis
       ai.py            — AI recommendation endpoints
       scraper.py       — POST /api/scraper/run (sync, blocking)
@@ -23,6 +27,7 @@ storage-scraper/
       static/index.html — single-file SPA dashboard
   data/
     storage_scraper.db — SQLite database
+  launch.command       — Mac launcher (uvicorn on 127.0.0.1:8000)
 ```
 
 ## Models
@@ -53,3 +58,15 @@ database._migrate() handles additive column migrations:
 - StorageTreasuresScraper.fetch_and_save() returns (new_count, total_fetched)
 - Playwright for page 1 auth + header capture; httpx for pages 2+
 - auction_type captured from API numeric field (1=lien, 2=private, 3=manager_special, 4=charity)
+- Ended auctions filtered out in _upsert(): if end_time < datetime.utcnow() → return False
+
+## Known Bugs Fixed (Feb 2026)
+- pnl.py: /summary route must be declared BEFORE /{pnl_id} or FastAPI matches summary as an ID
+- index.html: frontend was calling /api/pnl/ (trailing slash) → 404; fixed to /api/pnl
+- launch.command: use 127.0.0.1 consistently (not localhost); added venv check, PID file, health poll
+- storage_treasures.py: skip auctions where end_time < utcnow during _upsert
+
+## Route registration rule
+Always use @router.get("") not @router.get("/") for collection endpoints.
+StaticFiles mount at "/" intercepts trailing-slash redirects → 404.
+Applied to: listings.py, bidding.py, pnl.py, analysis.py
