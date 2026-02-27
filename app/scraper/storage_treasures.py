@@ -38,18 +38,22 @@ logger = logging.getLogger(__name__)
 
 # Cache zip code coordinates to avoid repeated lookups
 _ZIP_COORD_CACHE: dict = {}
+_PGEOCODE_NOMI = None
 
 def _get_zip_coords(zip_code: str) -> Optional[tuple]:
-    """Get lat/lon for a zip code, with caching."""
+    """Get lat/lon for a zip code using pgeocode (local, no API calls)."""
+    global _PGEOCODE_NOMI
     if zip_code in _ZIP_COORD_CACHE:
         return _ZIP_COORD_CACHE[zip_code]
     try:
-        import urllib.request, json
-        url = f"https://api.zippopotam.us/us/{zip_code}"
-        with urllib.request.urlopen(url, timeout=5) as r:
-            d = json.loads(r.read())
-        lat = float(d["places"][0]["latitude"])
-        lon = float(d["places"][0]["longitude"])
+        import pgeocode
+        if _PGEOCODE_NOMI is None:
+            _PGEOCODE_NOMI = pgeocode.Nominatim("us")
+        row = _PGEOCODE_NOMI.query_postal_code(zip_code)
+        lat = float(row.latitude)
+        lon = float(row.longitude)
+        if lat != lat or lon != lon:  # NaN check
+            return None
         _ZIP_COORD_CACHE[zip_code] = (lat, lon)
         return (lat, lon)
     except Exception as exc:
@@ -133,6 +137,10 @@ class StorageTreasuresScraper:
         filter_types: str,
         db:           Optional[Session],
     ) -> tuple:
+        logger.info(f"Scrape params: state={state} zip={zip_code} radius={radius_miles} max_pages={max_pages}")
+        # Pre-fetch origin coords once so _upsert doesn't make repeated API calls
+        if zip_code:
+            _get_zip_coords(zip_code)
         close_db = db is None
         if db is None:
             db = SessionLocal()
