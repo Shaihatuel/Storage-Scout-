@@ -24,7 +24,10 @@ def get_listings(
     offset: int = 0,
     db: Session = Depends(get_db),
 ):
-    q = db.query(Listing)
+    from datetime import datetime
+    q = db.query(Listing).filter(
+        (Listing.auction_end_time == None) | (Listing.auction_end_time > datetime.utcnow())
+    )
     if status:
         q = q.filter(Listing.status == status)
     if state:
