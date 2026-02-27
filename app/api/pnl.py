@@ -47,29 +47,6 @@ def _compute_net(entry: PnLEntry) -> float:
     return (entry.gross_revenue or 0.0) - total_cost
 
 
-@router.post("")
-def create_pnl(data: PnLCreate, db: Session = Depends(get_db)):
-    entry = PnLEntry(**data.model_dump())
-    entry.net_profit = _compute_net(entry)
-    db.add(entry)
-    db.commit()
-    db.refresh(entry)
-    return _pnl_dict(entry)
-
-
-@router.patch("/{pnl_id}")
-def update_pnl(pnl_id: int, data: PnLUpdate, db: Session = Depends(get_db)):
-    entry = db.get(PnLEntry, pnl_id)
-    if not entry:
-        raise HTTPException(404, "P&L entry not found")
-    for field, val in data.model_dump(exclude_none=True).items():
-        setattr(entry, field, val)
-    entry.net_profit = _compute_net(entry)
-    db.commit()
-    db.refresh(entry)
-    return _pnl_dict(entry)
-
-
 @router.get("")
 def list_pnl(db: Session = Depends(get_db)):
     entries = db.query(PnLEntry).all()
@@ -99,6 +76,29 @@ def pnl_summary(db: Session = Depends(get_db)):
     }
 
 
+@router.post("")
+def create_pnl(data: PnLCreate, db: Session = Depends(get_db)):
+    entry = PnLEntry(**data.model_dump())
+    entry.net_profit = _compute_net(entry)
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return _pnl_dict(entry)
+
+
+@router.patch("/{pnl_id}")
+def update_pnl(pnl_id: int, data: PnLUpdate, db: Session = Depends(get_db)):
+    entry = db.get(PnLEntry, pnl_id)
+    if not entry:
+        raise HTTPException(404, "P&L entry not found")
+    for field, val in data.model_dump(exclude_none=True).items():
+        setattr(entry, field, val)
+    entry.net_profit = _compute_net(entry)
+    db.commit()
+    db.refresh(entry)
+    return _pnl_dict(entry)
+
+
 @router.post("/{pnl_id}/inventory")
 def add_inventory_item(pnl_id: int, item: InventoryItemCreate, db: Session = Depends(get_db)):
     entry = db.get(PnLEntry, pnl_id)
@@ -106,7 +106,6 @@ def add_inventory_item(pnl_id: int, item: InventoryItemCreate, db: Session = Dep
         raise HTTPException(404, "P&L entry not found")
     inv = InventoryItem(pnl_entry_id=pnl_id, **item.model_dump())
     db.add(inv)
-    # update gross revenue from sold items
     entry.gross_revenue = (entry.gross_revenue or 0) + (item.sold_price or 0)
     entry.net_profit = _compute_net(entry)
     db.commit()
