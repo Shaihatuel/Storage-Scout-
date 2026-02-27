@@ -403,6 +403,10 @@
       padding: 2px 7px; border-radius: 4px;
     }
     .card-bid-count { font-size: 11.5px; color: var(--text-3); }
+    .auction-type-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .atf-label { font-size: 11.5px; font-weight: 600; color: var(--text-2); }
+    .atf-check { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-2); cursor: pointer; }
+    .atf-check input { cursor: pointer; accent-color: var(--blue); }
     .auction-type-badge { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: capitalize; }
     .auction-type-badge.lien { background: #fef3c7; color: #92400e; }
     .auction-type-badge.private { background: #ede9fe; color: #5b21b6; }
@@ -895,6 +899,13 @@
             <option value="skip">Skip (D)</option>
           </select>
           <input class="f-input" id="f-search" placeholder="🔍  Search facility, city, state…" oninput="applyFilters()">
+          <div class="auction-type-filters">
+            <span class="atf-label">Type:</span>
+            <label class="atf-check"><input type="checkbox" value="lien" checked onchange="applyFilters()"> Lien</label>
+            <label class="atf-check"><input type="checkbox" value="manager_special" checked onchange="applyFilters()"> Manager Special</label>
+            <label class="atf-check"><input type="checkbox" value="private" checked onchange="applyFilters()"> Private Seller</label>
+            <label class="atf-check"><input type="checkbox" value="charity" checked onchange="applyFilters()"> Charity</label>
+          </div>
         </div>
         <div id="listings-grid" class="listings-grid"></div>
       </div>
@@ -1342,6 +1353,8 @@ function applyFilters() {
   const status = document.getElementById('f-status').value;
   const rec    = document.getElementById('f-rec').value;
   const q      = document.getElementById('f-search').value.toLowerCase();
+  const typeChecks = [...document.querySelectorAll('.auction-type-filters input[type=checkbox]')];
+  const activeTypes = typeChecks.filter(c => c.checked).map(c => c.value);
   S.filtered = S.listings.filter(l => {
     if (status === 'watched') { if (!l.watched) return false; }
     else if (status && l.status !== status) return false;
@@ -1350,6 +1363,7 @@ function applyFilters() {
       const hay = `${l.facility_name||''} ${l.city||''} ${l.state||''} ${l.unit_number||''}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
+    if (!activeTypes.includes(l.auction_type || 'lien')) return false;
     return true;
   });
   renderGrid();
