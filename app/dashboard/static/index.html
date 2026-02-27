@@ -899,6 +899,17 @@
             <option value="skip">Skip (D)</option>
           </select>
           <input class="f-input" id="f-search" placeholder="🔍  Search facility, city, state…" oninput="applyFilters()">
+          <div class="zip-filter-group">
+            <input class="f-input" id="f-zip" placeholder="📍 Zip code" style="max-width:110px" oninput="applyFilters()">
+            <select class="f-select" id="f-radius" onchange="applyFilters()" style="max-width:130px">
+              <option value="">Any distance</option>
+              <option value="25">Within 25 mi</option>
+              <option value="50">Within 50 mi</option>
+              <option value="100">Within 100 mi</option>
+              <option value="150">Within 150 mi</option>
+              <option value="200">Within 200 mi</option>
+            </select>
+          </div>
           <div class="auction-type-filters">
             <span class="atf-label">Type:</span>
             <label class="atf-check"><input type="checkbox" value="lien" checked onchange="applyFilters()"> Lien</label>
@@ -1355,6 +1366,9 @@ function applyFilters() {
   const q      = document.getElementById('f-search').value.toLowerCase();
   const typeChecks = [...document.querySelectorAll('.auction-type-filters input[type=checkbox]')];
   const activeTypes = typeChecks.filter(c => c.checked).map(c => c.value);
+  const filterZip    = (document.getElementById('f-zip')?.value || '').trim();
+  const filterRadius = parseInt(document.getElementById('f-radius')?.value) || 0;
+
   S.filtered = S.listings.filter(l => {
     if (status === 'watched') { if (!l.watched) return false; }
     else if (status && l.status !== status) return false;
@@ -1364,9 +1378,48 @@ function applyFilters() {
       if (!hay.includes(q)) return false;
     }
     if (!activeTypes.includes(l.auction_type || 'lien')) return false;
+    if (filterZip && filterRadius && l.zip_code) {
+      const dist = zipDistance(filterZip, l.zip_code);
+      if (dist !== null && dist > filterRadius) return false;
+    }
     return true;
   });
   renderGrid();
+}
+
+function zipDistance(zip1, zip2) {
+  const coords = window._zipCache || (window._zipCache = {});
+  function getCoords(z) {
+    if (coords[z]) return coords[z];
+    return null;
+  }
+  function haversine(lat1, lon1, lat2, lon2) {
+    const R = 3958.8;
+    const dLat = (lat2-lat1) * Math.PI/180;
+    const dLon = (lon2-lon1) * Math.PI/180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+  const c1 = getCoords(zip1);
+  const c2 = getCoords(zip2);
+  if (!c1 || !c2) {
+    // Fetch coords async and trigger re-filter when done
+    if (!coords[zip1]) fetchZipCoords(zip1);
+    if (!coords[zip2]) fetchZipCoords(zip2);
+    return null;
+  }
+  return haversine(c1[0], c1[1], c2[0], c2[1]);
+}
+
+async function fetchZipCoords(zip) {
+  if (window._zipCache?.[zip]) return;
+  try {
+    const r = await fetch(`https://api.zippopotam.us/us/${zip}`);
+    const d = await r.json();
+    if (!window._zipCache) window._zipCache = {};
+    window._zipCache[zip] = [parseFloat(d.places[0].latitude), parseFloat(d.places[0].longitude)];
+    applyFilters();
+  } catch(e) {}
 }
 
 function _updateWatchBadge() {
