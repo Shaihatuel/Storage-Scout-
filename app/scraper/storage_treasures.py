@@ -36,28 +36,43 @@ from app.database import SessionLocal
 logger = logging.getLogger(__name__)
 
 
-def _zip_distance_miles(zip1: str, zip2: str) -> Optional[float]:
-    """Estimate distance in miles between two US zip codes using lat/lon from Census API."""
+# Cache zip code coordinates to avoid repeated lookups
+_ZIP_COORD_CACHE: dict = {}
+
+def _get_zip_coords(zip_code: str) -> Optional[tuple]:
+    """Get lat/lon for a zip code, with caching."""
+    if zip_code in _ZIP_COORD_CACHE:
+        return _ZIP_COORD_CACHE[zip_code]
     try:
         import urllib.request, json
-        def get_coords(z):
-            url = f"https://api.zippopotam.us/us/{z}"
-            with urllib.request.urlopen(url, timeout=5) as r:
-                d = json.loads(r.read())
-            lat = float(d["places"][0]["latitude"])
-            lon = float(d["places"][0]["longitude"])
-            return lat, lon
-        lat1, lon1 = get_coords(zip1)
-        lat2, lon2 = get_coords(zip2)
-        # Haversine formula
+        url = f"https://api.zippopotam.us/us/{zip_code}"
+        with urllib.request.urlopen(url, timeout=5) as r:
+            d = json.loads(r.read())
+        lat = float(d["places"][0]["latitude"])
+        lon = float(d["places"][0]["longitude"])
+        _ZIP_COORD_CACHE[zip_code] = (lat, lon)
+        return (lat, lon)
+    except Exception as exc:
+        logger.debug(f"Zip coord lookup failed for {zip_code}: {exc}")
+        return None
+
+def _zip_distance_miles(zip1: str, zip2: str) -> Optional[float]:
+    """Estimate distance in miles between two US zip codes."""
+    try:
+        coords1 = _get_zip_coords(zip1)
+        coords2 = _get_zip_coords(zip2)
+        if not coords1 or not coords2:
+            return None
         from math import radians, sin, cos, sqrt, atan2
+        lat1, lon1 = coords1
+        lat2, lon2 = coords2
         R = 3958.8
         dlat = radians(lat2 - lat1)
         dlon = radians(lon2 - lon1)
         a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
         return R * 2 * atan2(sqrt(a), sqrt(1-a))
     except Exception as exc:
-        logger.debug(f"Zip distance lookup failed: {exc}")
+        logger.debug(f"Zip distance calc failed: {exc}")
         return None
 
 API_URL  = "https://api.st-prd-1.aws.storagetreasures.com/p/auctions"
