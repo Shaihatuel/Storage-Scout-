@@ -197,7 +197,7 @@ class StorageTreasuresScraper:
             await page.goto(search_url, wait_until="networkidle", timeout=45000)
             await browser.close()
 
-        page1_auctions = page1_body.get("auctions", [])
+        page1_auctions = page1_body.get("auctions") or []
         total_records  = int(page1_body.get("total_records", 0))
         logger.info(
             f"Page 1: {len(page1_auctions)} auctions  "
@@ -240,7 +240,7 @@ class StorageTreasuresScraper:
                     resp = client.get(API_URL, headers=captured_headers, params=params)
                     resp.raise_for_status()
                     data     = resp.json()
-                    page_aus = data.get("auctions", [])
+                    page_aus = data.get("auctions") or []
                     logger.info(f"Page {page_num}: {len(page_aus)} auctions")
                     all_auctions.extend(page_aus)
                     if not page_aus:
