@@ -35,6 +35,31 @@ from app.database import SessionLocal
 
 logger = logging.getLogger(__name__)
 
+
+def _zip_distance_miles(zip1: str, zip2: str) -> Optional[float]:
+    """Estimate distance in miles between two US zip codes using lat/lon from Census API."""
+    try:
+        import urllib.request, json
+        def get_coords(z):
+            url = f"https://api.zippopotam.us/us/{z}"
+            with urllib.request.urlopen(url, timeout=5) as r:
+                d = json.loads(r.read())
+            lat = float(d["places"][0]["latitude"])
+            lon = float(d["places"][0]["longitude"])
+            return lat, lon
+        lat1, lon1 = get_coords(zip1)
+        lat2, lon2 = get_coords(zip2)
+        # Haversine formula
+        from math import radians, sin, cos, sqrt, atan2
+        R = 3958.8
+        dlat = radians(lat2 - lat1)
+        dlon = radians(lon2 - lon1)
+        a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+        return R * 2 * atan2(sqrt(a), sqrt(1-a))
+    except Exception as exc:
+        logger.debug(f"Zip distance lookup failed: {exc}")
+        return None
+
 API_URL  = "https://api.st-prd-1.aws.storagetreasures.com/p/auctions"
 SITE_URL = "https://www.storagetreasures.com"
 
@@ -100,7 +125,7 @@ class StorageTreasuresScraper:
             auctions = await self._fetch_all_pages(state, zip_code, radius_miles, max_pages, filter_types)
             new_count = 0
             for a in auctions:
-                if self._upsert(a, db):
+                if self._upsert(a, db, zip_code=zip_code, radius_miles=radius_miles):
                     new_count += 1
             db.commit()
             logger.info(f"Scrape complete: {new_count} new / {len(auctions)} total fetched")
@@ -235,7 +260,7 @@ class StorageTreasuresScraper:
     # ------------------------------------------------------------------
     # DB upsert
     # ------------------------------------------------------------------
-    def _upsert(self, a: dict, db: Session) -> bool:
+    def _upsert(self, a: dict, db: Session, zip_code: Optional[str] = None, radius_miles: int = 50) -> bool:
         """Insert or update one auction.  Returns True if NEW row was created."""
         external_id = str(a.get("auction_id", "")).strip()
         if not external_id:
