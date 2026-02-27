@@ -286,7 +286,9 @@ class StorageTreasuresScraper:
             listing_zip = str(a.get("zipcode") or "").strip()
             if listing_zip and listing_zip != zip_code:
                 dist = _zip_distance_miles(zip_code, listing_zip)
-                if dist is not None and dist > radius_miles:
+                if dist is None:
+                    logger.debug(f"Could not determine distance for {listing_zip}, allowing through")
+                elif dist > radius_miles:
                     logger.debug(f"Skipping {listing_zip} — {dist:.0f} mi from {zip_code}")
                     return False
 
