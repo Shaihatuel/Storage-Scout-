@@ -11,6 +11,13 @@ if lsof -i:8000 -t >/dev/null 2>&1; then
   exit 0
 fi
 
+# Check if venv exists
+if [ ! -f "$DIR/.venv/bin/activate" ]; then
+  echo "ERROR: Virtual environment not found at $DIR/.venv"
+  echo "Run: python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt"
+  exit 1
+fi
+
 echo "Starting StorageScout…"
 source "$DIR/.venv/bin/activate"
 
