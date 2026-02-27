@@ -403,6 +403,11 @@
       padding: 2px 7px; border-radius: 4px;
     }
     .card-bid-count { font-size: 11.5px; color: var(--text-3); }
+    .auction-type-badge { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: capitalize; }
+    .auction-type-badge.lien { background: #fef3c7; color: #92400e; }
+    .auction-type-badge.private { background: #ede9fe; color: #5b21b6; }
+    .auction-type-badge.manager_special { background: #dcfce7; color: #166534; }
+    .auction-type-badge.charity { background: #fce7f3; color: #9d174d; }
 
     /* ═══════════════════════════════════════
        EMPTY STATE
@@ -1445,7 +1450,7 @@ function listingCard(l) {
       </div>
     </div>
     <div class="card-footer">
-      <span class="card-unit-size">${esc(l.unit_size||'?')}</span>
+      <span class="card-unit-size">${esc(l.unit_size||'?')}</span>${l.auction_type ? `<span class="auction-type-badge ${l.auction_type}">${l.auction_type.replace(/_/g,' ')}</span>` : ''}
       <span class="card-bid-count">${l.bid_count||0} bid${l.bid_count!==1?'s':''}</span>
       <button class="i-bid-btn${l.has_bid ? ' placed' : ''}" onclick="markBidPlaced(${l.id}, event)">
         ${l.has_bid ? '✓ BID PLACED' : 'I Bid This'}

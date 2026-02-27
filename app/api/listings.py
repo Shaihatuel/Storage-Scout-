@@ -220,6 +220,7 @@ def _listing_dict(listing: Listing, full: bool = False) -> dict:
         "status":           listing.status,
         "scraped_at":       listing.scraped_at.isoformat() if listing.scraped_at else None,
         "watched":          bool(listing.watched),
+        "auction_type":     listing.auction_type,
         "has_bid":          listing.bid_record is not None,
         "images":           images,
         "ai_recommendation": ai_rec,
