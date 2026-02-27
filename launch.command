@@ -7,7 +7,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # If the server is already running on port 8000, just open the browser
 if lsof -i:8000 -t >/dev/null 2>&1; then
   echo "Server already running — opening browser…"
-  open http://localhost:8000
+  open http://127.0.0.1:8000
   exit 0
 fi
 
@@ -21,5 +21,5 @@ nohup uvicorn app.main:app --app-dir "$DIR" --host 127.0.0.1 --port 8000 \
 echo "Server starting (PID $!) — waiting…"
 sleep 2
 
-open http://localhost:8000
+open http://127.0.0.1:8000
 echo "Done. Logs: $DIR/server.log"
