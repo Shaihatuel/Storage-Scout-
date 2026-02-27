@@ -27,8 +27,20 @@ nohup uvicorn app.main:app --app-dir "$DIR" --host 127.0.0.1 --port 8000 \
 
 SERVER_PID=$!
 echo $SERVER_PID > "$DIR/server.pid"
-echo "Server starting (PID $SERVER_PID) — waiting…"
-sleep 2
+echo "Server starting (PID $SERVER_PID) — waiting for it to be ready…"
 
+# Poll until server is ready (max 10 seconds)
+MAX_WAIT=10
+COUNT=0
+until curl -s http://127.0.0.1:8000 >/dev/null 2>&1; do
+  sleep 1
+  COUNT=$((COUNT + 1))
+  if [ $COUNT -ge $MAX_WAIT ]; then
+    echo "ERROR: Server did not start within ${MAX_WAIT}s. Check $DIR/server.log"
+    exit 1
+  fi
+done
+
+echo "Server ready!"
 open http://127.0.0.1:8000
 echo "Done. Logs: $DIR/server.log"
