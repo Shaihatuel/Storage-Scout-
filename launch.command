@@ -25,7 +25,9 @@ source "$DIR/.venv/bin/activate"
 nohup uvicorn app.main:app --app-dir "$DIR" --host 127.0.0.1 --port 8000 \
   > "$DIR/server.log" 2>&1 &
 
-echo "Server starting (PID $!) — waiting…"
+SERVER_PID=$!
+echo $SERVER_PID > "$DIR/server.pid"
+echo "Server starting (PID $SERVER_PID) — waiting…"
 sleep 2
 
 open http://127.0.0.1:8000
