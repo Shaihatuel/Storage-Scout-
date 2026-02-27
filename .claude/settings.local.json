@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__serena__check_onboarding_performed",
+      "mcp__serena__activate_project",
+      "mcp__serena__onboarding",
+      "mcp__serena__write_memory",
+      "Bash(python3:*)",
+      "Bash(python3.11:*)",
+      "Bash(.venv/bin/pip install:*)",
+      "Bash(PYTHONPATH=. .venv/bin/python:*)",
+      "mcp__serena__edit_memory",
+      "Bash(.venv/bin/python:*)",
+      "Bash(.venv/bin/playwright install:*)"
+    ]
+  }
+}

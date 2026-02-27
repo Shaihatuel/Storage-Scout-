@@ -1,0 +1,2153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StorageScout — Auction Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sb-bg: #0f172a;
+      --sb-border: #1e293b;
+      --sb-text: #94a3b8;
+      --sb-text-active: #f1f5f9;
+      --sb-accent: #3b82f6;
+      --sb-accent-bg: rgba(59,130,246,0.12);
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --border-subtle: #f1f5f9;
+      --text: #0f172a;
+      --text-2: #475569;
+      --text-3: #94a3b8;
+      --blue: #3b82f6;
+      --blue-bg: #eff6ff;
+      --green: #10b981;
+      --green-bg: #ecfdf5;
+      --amber: #f59e0b;
+      --amber-bg: #fffbeb;
+      --red: #ef4444;
+      --red-bg: #fef2f2;
+      --purple: #8b5cf6;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.12);
+      --sidebar-w: 224px;
+      --header-h: 58px;
+      --t: 150ms ease;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    #app { display: flex; height: 100vh; }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR
+    ═══════════════════════════════════════ */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--sb-bg);
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--sb-border);
+      z-index: 20;
+    }
+
+    .sb-logo {
+      padding: 18px 16px 14px;
+      border-bottom: 1px solid var(--sb-border);
+    }
+    .sb-logo-row { display: flex; align-items: center; gap: 10px; }
+    .sb-logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; flex-shrink: 0;
+    }
+    .sb-logo-name { font-size: 15px; font-weight: 700; color: #f1f5f9; letter-spacing: -.3px; }
+    .sb-logo-sub { font-size: 11px; color: #475569; margin-top: 1px; }
+
+    .sb-section { padding: 14px 10px 6px; }
+    .sb-section-label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .8px; color: #334155;
+      padding: 0 8px; margin-bottom: 3px;
+    }
+    .sb-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 10px; border-radius: 7px; cursor: pointer;
+      color: var(--sb-text); font-size: 13.5px; font-weight: 500;
+      transition: all var(--t); margin-bottom: 1px; white-space: nowrap;
+      user-select: none;
+    }
+    .sb-item:hover { background: rgba(255,255,255,0.05); color: var(--sb-text-active); }
+    .sb-item.active { background: var(--sb-accent-bg); color: var(--sb-accent); }
+    .sb-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+    .sb-badge {
+      margin-left: auto;
+      background: #1e3a5f; color: #60a5fa;
+      font-size: 10.5px; font-weight: 600;
+      padding: 1px 7px; border-radius: 10px; min-width: 20px; text-align: center;
+    }
+    .sb-item.active .sb-badge { background: #1e3a5f; color: var(--sb-accent); }
+
+    .sb-footer {
+      margin-top: auto;
+      padding: 10px 10px 14px;
+      border-top: 1px solid var(--sb-border);
+    }
+    .sb-status {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px; border-radius: 6px;
+      font-size: 12px; color: #475569;
+    }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+    }
+    .status-dot.offline { background: var(--red); animation: none; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* ═══════════════════════════════════════
+       MAIN CONTENT
+    ═══════════════════════════════════════ */
+    #content { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+
+    .page-header {
+      height: var(--header-h);
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 24px; gap: 12px; flex-shrink: 0;
+    }
+    .page-title { font-size: 16px; font-weight: 600; }
+    .page-subtitle { font-size: 12.5px; color: var(--text-3); margin-top: 1px; }
+    .header-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+    .page-body { flex: 1; overflow-y: auto; padding: 22px 24px; }
+
+    .page-section { display: none; }
+    .page-section.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* ═══════════════════════════════════════
+       STATS STRIP
+    ═══════════════════════════════════════ */
+    .stats-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+      gap: 12px; margin-bottom: 18px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      box-shadow: var(--shadow);
+    }
+    .stat-label {
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .5px;
+      color: var(--text-3); margin-bottom: 5px;
+    }
+    .stat-value { font-size: 22px; font-weight: 700; line-height: 1; }
+    .stat-value.blue  { color: var(--blue); }
+    .stat-value.green { color: var(--green); }
+    .stat-value.red   { color: var(--red); }
+    .stat-value.amber { color: var(--amber); }
+    .stat-sub { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+
+    /* ═══════════════════════════════════════
+       BUTTONS
+    ═══════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 500; cursor: pointer; border: none;
+      transition: all var(--t); line-height: 1; white-space: nowrap;
+      font-family: inherit; text-decoration: none;
+    }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-primary  { background: var(--blue); color: white; }
+    .btn-primary:hover:not(:disabled) { background: #2563eb; }
+    .btn-success  { background: var(--green); color: white; }
+    .btn-success:hover:not(:disabled) { background: #059669; }
+    .btn-danger   { background: var(--red); color: white; }
+    .btn-danger:hover:not(:disabled) { background: #dc2626; }
+    .btn-amber    { background: var(--amber); color: white; }
+    .btn-amber:hover:not(:disabled) { background: #d97706; }
+    .btn-ghost    { background: transparent; color: var(--text-2); border: 1px solid var(--border); }
+    .btn-ghost:hover:not(:disabled) { background: var(--border-subtle); }
+    .btn-sm       { padding: 5px 10px; font-size: 12px; }
+    .btn-xs       { padding: 3px 8px; font-size: 11px; }
+
+    /* ═══════════════════════════════════════
+       FILTERS BAR
+    ═══════════════════════════════════════ */
+    .filters-bar {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .f-select, .f-input {
+      padding: 7px 11px;
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--card); font-size: 13px; color: var(--text);
+      font-family: inherit; outline: none;
+      transition: border-color var(--t);
+    }
+    .f-select:focus, .f-input:focus { border-color: var(--blue); }
+    .f-input { min-width: 220px; }
+
+    /* ═══════════════════════════════════════
+       LISTINGS GRID
+    ═══════════════════════════════════════ */
+    .listings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 14px;
+    }
+
+    .listing-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: all 200ms ease;
+      position: relative;
+    }
+    .listing-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: #c7d2e0;
+      transform: translateY(-2px);
+    }
+
+    .card-thumb {
+      width: 100%; height: 155px;
+      background: linear-gradient(135deg, #1e293b 0%, #2d3f55 100%);
+      position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .card-thumb img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .card-thumb-placeholder {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 6px;
+      color: #475569;
+    }
+    .thumb-icon { font-size: 30px; }
+    .thumb-size {
+      font-size: 18px; font-weight: 700; color: #64748b;
+      letter-spacing: 1px;
+    }
+
+    /* AI badge */
+    .rec-badge {
+      position: absolute; top: 9px; left: 9px;
+      display: flex; align-items: center; gap: 4px;
+      padding: 3px 8px; border-radius: 20px;
+      font-size: 10.5px; font-weight: 700;
+      letter-spacing: .4px; text-transform: uppercase;
+      backdrop-filter: blur(6px);
+    }
+    .rec-badge.buy   { background: rgba(16,185,129,.9);  color: white; }
+    .rec-badge.watch { background: rgba(245,158,11,.9);  color: white; }
+    .rec-badge.risky { background: rgba(249,115,22,.9);  color: white; }
+    .rec-badge.skip  { background: rgba(239,68,68,.9);   color: white; }
+    .rec-badge.none  { background: rgba(30,41,59,.75);   color: #94a3b8; }
+
+    /* End time badge */
+    .time-badge {
+      position: absolute; top: 9px; right: 9px;
+      background: rgba(15,23,42,.8); color: white;
+      padding: 3px 8px; border-radius: 20px;
+      font-size: 10.5px; font-weight: 600;
+      backdrop-filter: blur(6px);
+    }
+    .time-badge.urgent { color: #fca5a5; }
+    .time-badge.ended  { color: #94a3b8; }
+
+    /* Watch star */
+    .card-watch-btn {
+      position: absolute; bottom: 9px; right: 9px;
+      background: white; border: none;
+      border-radius: 50%; width: 28px; height: 28px;
+      cursor: pointer; font-size: 15px; line-height: 1;
+      color: #94a3b8;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,.25);
+      transition: all var(--t); z-index: 5;
+    }
+    .card-watch-btn:hover { background: white; color: #f59e0b; transform: scale(1.1); }
+    .card-watch-btn.watched { color: #f59e0b; background: #fffbeb; }
+
+    /* Load photos button in gallery */
+    .load-photos-btn {
+      position: absolute; bottom: 10px; left: 10px;
+      background: rgba(15,23,42,.82); color: white;
+      border: 1px solid rgba(255,255,255,.2); border-radius: 6px;
+      padding: 4px 10px; font-size: 11px; font-weight: 500;
+      cursor: pointer; backdrop-filter: blur(4px);
+      transition: background var(--t); z-index: 5;
+    }
+    .load-photos-btn:hover:not(:disabled) { background: rgba(15,23,42,.97); }
+    .load-photos-btn:disabled { opacity: .65; cursor: not-allowed; }
+
+    /* Ending soon banner */
+    .ending-soon-banner {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: #ef4444; color: white;
+      font-size: 10px; font-weight: 800; text-align: center;
+      padding: 4px 0; letter-spacing: .8px; text-transform: uppercase;
+      animation: pulse-red 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse-red {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.65; }
+    }
+
+    /* I Bid This button */
+    .i-bid-btn {
+      margin-left: auto; padding: 2px 8px; border-radius: 4px;
+      font-size: 11px; font-weight: 600; line-height: 1.6;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-3); cursor: pointer; transition: all var(--t);
+    }
+    .i-bid-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .i-bid-btn.placed { border-color: var(--blue); color: var(--blue); background: var(--blue-bg); }
+
+    /* Scraper modal */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45); backdrop-filter: blur(2px);
+      z-index: 200; display: none;
+    }
+    .modal-backdrop.open { display: block; }
+    .modal-box {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 201; background: var(--card);
+      border-radius: var(--radius); padding: 24px;
+      width: 500px; max-width: calc(100vw - 32px);
+      max-height: calc(100vh - 40px); overflow-y: auto;
+      box-shadow: var(--shadow-lg); display: none;
+    }
+    .modal-box.open { display: block; }
+    .modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .modal-head h3 { font-size: 16px; font-weight: 600; }
+    .modal-close-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-3); font-size: 22px; line-height: 1; padding: 0 2px;
+    }
+    .modal-close-btn:hover { color: var(--text); }
+    .modal-foot {
+      display: flex; justify-content: flex-end; gap: 8px;
+      margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);
+    }
+
+    .card-body { padding: 12px 14px 10px; }
+    .card-facility {
+      font-size: 13.5px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+    .card-location { font-size: 12px; color: var(--text-3); margin-bottom: 10px; }
+    .card-row { display: flex; align-items: flex-end; justify-content: space-between; }
+    .card-bid-amount { font-size: 20px; font-weight: 700; line-height: 1; }
+    .card-bid-label  { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 8px; border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+    }
+    .status-pill.active   { background: var(--blue-bg);  color: var(--blue); }
+    .status-pill.won      { background: var(--green-bg); color: var(--green); }
+    .status-pill.lost     { background: #f1f5f9;         color: #64748b; }
+    .status-pill.skipped  { background: #f8fafc;         color: #94a3b8; }
+
+    .card-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px;
+      border-top: 1px solid var(--border-subtle);
+      background: #fafbfc;
+    }
+    .card-unit-size {
+      font-size: 11.5px; font-weight: 600; color: var(--text-2);
+      background: var(--border-subtle); border: 1px solid var(--border);
+      padding: 2px 7px; border-radius: 4px;
+    }
+    .card-bid-count { font-size: 11.5px; color: var(--text-3); }
+
+    /* ═══════════════════════════════════════
+       EMPTY STATE
+    ═══════════════════════════════════════ */
+    .empty-state {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 70px 40px; text-align: center;
+      background: var(--card); border: 1.5px dashed var(--border);
+      border-radius: var(--radius);
+    }
+    .empty-icon  { font-size: 44px; margin-bottom: 14px; }
+    .empty-title { font-size: 15px; font-weight: 600; color: var(--text-2); margin-bottom: 7px; }
+    .empty-desc  { font-size: 13px; color: var(--text-3); line-height: 1.6; max-width: 340px; }
+
+    /* loading */
+    .loading-box {
+      display: flex; align-items: center; justify-content: center;
+      gap: 10px; padding: 60px; color: var(--text-3); font-size: 13px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid var(--border); border-top-color: var(--blue);
+      animation: spin .7s linear infinite;
+    }
+    .spin-white {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.3); border-top-color: white;
+      animation: spin .6s linear infinite;
+    }
+
+    /* ═══════════════════════════════════════
+       DETAIL DRAWER
+    ═══════════════════════════════════════ */
+    #drawer-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.32);
+      z-index: 40; display: none;
+      backdrop-filter: blur(1px);
+    }
+    #drawer-overlay.open { display: block; }
+
+    #detail-drawer {
+      position: fixed; top: 0; right: 0;
+      width: 620px; max-width: 100vw; height: 100vh;
+      background: var(--card); z-index: 50;
+      box-shadow: -10px 0 40px rgba(0,0,0,.14);
+      display: flex; flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 320ms cubic-bezier(.4,0,.2,1);
+    }
+    #detail-drawer.open { transform: translateX(0); }
+
+    .drawer-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    }
+    .drawer-close {
+      background: none; border: 1px solid var(--border);
+      border-radius: 6px; width: 30px; height: 30px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; color: var(--text-2); transition: all var(--t); flex-shrink: 0;
+    }
+    .drawer-close:hover { background: var(--bg); }
+    #drawer-title { font-size: 14.5px; font-weight: 600; }
+    #drawer-subtitle { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+    #drawer-actions { margin-left: auto; display: flex; gap: 6px; }
+
+    .drawer-body { flex: 1; overflow-y: auto; }
+
+    /* gallery */
+    .gallery {
+      position: relative;
+      background: #1a2740; height: 230px;
+      overflow: hidden; flex-shrink: 0;
+    }
+    .gallery img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .gallery-empty {
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; color: #475569;
+    }
+    .gallery-empty .gi { font-size: 36px; }
+    .gallery-empty .gt { font-size: 12px; color: #64748b; }
+    .g-nav {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: rgba(0,0,0,.55); color: white; border: none;
+      width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+      font-size: 14px; display: flex; align-items: center; justify-content: center;
+      transition: background var(--t);
+    }
+    .g-nav:hover { background: rgba(0,0,0,.8); }
+    .g-prev { left: 10px; }
+    .g-next { right: 10px; }
+    .g-counter {
+      position: absolute; bottom: 10px; right: 10px;
+      background: rgba(0,0,0,.6); color: white;
+      font-size: 11px; padding: 2px 8px; border-radius: 10px;
+    }
+    .g-thumbs {
+      position: absolute; bottom: 10px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; gap: 5px;
+    }
+    .g-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: rgba(255,255,255,.5); cursor: pointer;
+      transition: background var(--t);
+    }
+    .g-dot.active { background: white; }
+
+    /* drawer content */
+    .d-content { padding: 18px 20px; }
+
+    /* AI panel */
+    .ai-panel {
+      border-radius: var(--radius); padding: 14px;
+      margin-bottom: 18px;
+    }
+    .ai-panel.buy   { background: var(--green-bg); border: 1px solid #a7f3d0; }
+    .ai-panel.watch { background: var(--amber-bg); border: 1px solid #fde68a; }
+    .ai-panel.skip  { background: var(--red-bg);   border: 1px solid #fecaca; }
+    .ai-panel.none  { background: #f8fafc;          border: 1px solid var(--border); }
+    .ai-panel-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .ai-rec-label {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 20px; letter-spacing: .5px;
+    }
+    .ai-rec-label.buy   { background: var(--green); color: white; }
+    .ai-rec-label.watch { background: var(--amber); color: white; }
+    .ai-rec-label.skip  { background: var(--red);   color: white; }
+    .conf-bar-wrap {
+      flex: 1; height: 6px; background: rgba(0,0,0,.1);
+      border-radius: 3px; overflow: hidden;
+    }
+    .conf-bar { height: 100%; border-radius: 3px; transition: width 700ms ease; }
+    .conf-bar.buy   { background: var(--green); }
+    .conf-bar.watch { background: var(--amber); }
+    .conf-bar.skip  { background: var(--red);   }
+    .conf-pct { font-size: 13px; font-weight: 600; color: var(--text-2); white-space: nowrap; }
+    .ai-vals {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;
+    }
+    .ai-val-item { font-size: 12px; color: var(--text-2); }
+    .ai-val-item strong { display: block; font-size: 15px; font-weight: 700; color: var(--text); }
+    .ai-factors { display: flex; flex-wrap: wrap; gap: 5px; }
+    .factor {
+      font-size: 11px; padding: 2px 8px; border-radius: 20px;
+      background: rgba(0,0,0,.07); color: var(--text-2);
+    }
+
+    /* detail grid */
+    .d-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 12px; margin-bottom: 18px;
+    }
+    .d-field-full { grid-column: 1 / -1; }
+    .d-label {
+      font-size: 10.5px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--text-3); margin-bottom: 3px;
+    }
+    .d-value { font-size: 14px; font-weight: 500; }
+    .d-value.big { font-size: 22px; font-weight: 700; }
+
+    .divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+    /* section title inside drawer */
+    .d-section-title {
+      font-size: 12.5px; font-weight: 600; color: var(--text);
+      margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+    }
+
+    /* tags */
+    .tags-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+    .tag-btn {
+      display: flex; align-items: center; gap: 4px;
+      padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
+      cursor: pointer; border: 1px solid var(--border);
+      background: var(--card); color: var(--text-2);
+      transition: all var(--t); font-family: inherit;
+    }
+    .tag-btn:hover  { background: var(--bg); border-color: #94a3b8; }
+    .tag-btn.active { background: var(--blue-bg); border-color: #93c5fd; color: var(--blue); }
+
+    /* bid form */
+    .bid-card {
+      background: #fafbfc; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px; margin-bottom: 18px;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .form-group { }
+    .form-label {
+      display: block; font-size: 11.5px; font-weight: 500;
+      color: var(--text-2); margin-bottom: 4px;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; padding: 7px 11px;
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      font-size: 13px; font-family: inherit; color: var(--text);
+      background: white; outline: none; transition: border-color var(--t);
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--blue);
+    }
+    .form-textarea { min-height: 64px; resize: vertical; }
+    .inp-wrap { position: relative; }
+    .inp-pfx {
+      position: absolute; left: 9px; top: 50%;
+      transform: translateY(-50%); color: var(--text-3); font-size: 13px;
+      pointer-events: none;
+    }
+    .has-pfx { padding-left: 22px; }
+
+    /* description */
+    .d-desc {
+      font-size: 13px; color: var(--text-2); line-height: 1.65;
+      background: #fafbfc; border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px; margin-bottom: 18px;
+    }
+
+    /* ═══════════════════════════════════════
+       P&L PAGE
+    ═══════════════════════════════════════ */
+    .table-wrap {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: #f8fafc; }
+    th {
+      text-align: left; padding: 10px 14px;
+      font-size: 11px; font-weight: 600; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: .5px;
+      border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    td {
+      padding: 11px 14px; font-size: 13.5px;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #fafbfc; cursor: pointer; }
+    .pos { color: var(--green); font-weight: 600; }
+    .neg { color: var(--red);   font-weight: 600; }
+
+    /* ═══════════════════════════════════════
+       ANALYSIS PAGE
+    ═══════════════════════════════════════ */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .chart-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
+    }
+    .chart-card.full { grid-column: 1 / -1; }
+    .chart-title    { font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
+    .chart-subtitle { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
+    .chart-wrap     { position: relative; height: 220px; }
+    .chart-wrap.short { height: 170px; }
+
+    /* ═══════════════════════════════════════
+       SCRAPER PAGE
+    ═══════════════════════════════════════ */
+    .toggle-group {
+      display: flex; gap: 0; border: 1px solid var(--border);
+      border-radius: 7px; overflow: hidden; width: fit-content;
+    }
+    .toggle-btn {
+      padding: 6px 18px; font-size: 13px; font-weight: 500;
+      background: var(--bg); border: none; cursor: pointer; color: var(--text-2);
+      transition: background var(--t), color var(--t);
+    }
+    .toggle-btn.active {
+      background: var(--blue); color: white;
+    }
+    .toggle-btn:not(.active):hover { background: var(--border-subtle); }
+    .scraper-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px;
+      box-shadow: var(--shadow); max-width: 560px;
+    }
+    .scraper-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
+    .scraper-card .sub { font-size: 13px; color: var(--text-2); margin-bottom: 18px; line-height: 1.55; }
+    .scraper-section-label {
+      font-size: 11px; font-weight: 600; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: .06em;
+      margin: 16px 0 8px;
+    }
+    .checkbox-grid {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px;
+    }
+    .checkbox-label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; cursor: pointer; user-select: none;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 10px;
+      transition: border-color var(--t), background var(--t);
+    }
+    .checkbox-label:has(input:checked) {
+      border-color: var(--blue); background: var(--blue-bg); color: var(--blue);
+    }
+    .checkbox-label input { width: 14px; height: 14px; accent-color: var(--blue); }
+    .range-row { display: flex; align-items: center; gap: 10px; }
+    .range-row input[type=range] { flex: 1; accent-color: var(--blue); }
+    .range-val {
+      min-width: 28px; text-align: right;
+      font-size: 13px; font-weight: 600; color: var(--text);
+    }
+    .scraper-status {
+      margin-top: 14px; border-radius: 8px; padding: 12px 14px;
+      font-size: 13px; line-height: 1.55;
+    }
+    .scraper-status.running  { background: var(--blue-bg);  border: 1px solid #bfdbfe; color: #1d4ed8; }
+    .scraper-status.success  { background: var(--green-bg); border: 1px solid #6ee7b7; color: #065f46; }
+    .scraper-status.error    { background: var(--red-bg);   border: 1px solid #fca5a5; color: #991b1b; }
+    .info-box {
+      background: var(--blue-bg); border: 1px solid #bfdbfe;
+      border-radius: 8px; padding: 12px 14px;
+      font-size: 13px; color: #1d4ed8; line-height: 1.55;
+      margin-top: 14px;
+    }
+
+    /* ═══════════════════════════════════════
+       TOAST
+    ═══════════════════════════════════════ */
+    #toasts {
+      position: fixed; bottom: 18px; right: 18px;
+      z-index: 100; display: flex; flex-direction: column; gap: 7px;
+      pointer-events: none;
+    }
+    .toast {
+      background: #1e293b; color: white;
+      padding: 10px 15px; border-radius: 8px;
+      font-size: 13px; font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      pointer-events: auto;
+      animation: tIn .2s ease, tOut .2s ease 2.8s forwards;
+    }
+    .toast.success { border-left: 3px solid var(--green); }
+    .toast.error   { border-left: 3px solid var(--red);   }
+    .toast.info    { border-left: 3px solid var(--blue);  }
+    @keyframes tIn  { from { opacity:0; transform:translateX(16px); } to { opacity:1; transform:none; } }
+    @keyframes tOut { to   { opacity:0; transform:translateX(16px); } }
+
+    /* ═══════════════════════════════════════
+       REFRESH BAR
+    ═══════════════════════════════════════ */
+    .refresh-bar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 5px 24px;
+      background: #f8fafc; border-bottom: 1px solid var(--border);
+      font-size: 11.5px; color: var(--text-3);
+      flex-shrink: 0;
+    }
+    .refresh-toggle-label {
+      display: flex; align-items: center; gap: 5px; cursor: pointer;
+      color: var(--text-2); user-select: none;
+    }
+    .refresh-toggle-label input { accent-color: var(--blue); cursor: pointer; }
+    #refresh-countdown { color: var(--text-3); }
+
+    /* ═══════════════════════════════════════
+       AI SIGNALS BREAKDOWN
+    ═══════════════════════════════════════ */
+    .signals-details {
+      margin-top: 10px;
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    }
+    .signals-summary {
+      padding: 8px 12px;
+      font-size: 12px; font-weight: 600; color: var(--text-2);
+      cursor: pointer; list-style: none; user-select: none;
+      background: #f8fafc;
+    }
+    .signals-summary::-webkit-details-marker { display: none; }
+    .signals-summary::before { content: '▶ '; font-size: 9px; }
+    details[open] .signals-summary::before { content: '▼ '; }
+    .signals-body {
+      padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;
+    }
+    .signal-row {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--text-2);
+    }
+    .signal-icon { font-size: 11px; width: 14px; text-align: center; flex-shrink: 0; }
+    .signal-label { flex: 1; }
+    .signal-delta {
+      font-size: 11.5px; font-weight: 700;
+      min-width: 36px; text-align: right;
+    }
+    .signal-delta.pos { color: var(--green); }
+    .signal-delta.neg { color: var(--red);   }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══════════════════════════════════════ SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-row">
+        <div class="sb-logo-icon">🏪</div>
+        <div>
+          <div class="sb-logo-name">StorageScout</div>
+          <div class="sb-logo-sub">Auction Intelligence</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-section-label">Research</div>
+      <div class="sb-item active" data-page="listings">
+        <span class="sb-icon">🏠</span><span>Listings</span>
+        <span class="sb-badge" id="sb-count">—</span>
+      </div>
+      <div class="sb-item" data-page="watchlist">
+        <span class="sb-icon">⭐</span><span>Watchlist</span>
+        <span class="sb-badge" id="sb-watchlist-count">—</span>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-section-label">Finance</div>
+      <div class="sb-item" data-page="pnl">
+        <span class="sb-icon">💰</span><span>P&amp;L Tracker</span>
+      </div>
+      <div class="sb-item" data-page="analysis">
+        <span class="sb-icon">📊</span><span>Analysis</span>
+      </div>
+    </div>
+
+    <div class="sb-footer">
+      <div class="sb-status">
+        <span class="status-dot" id="api-dot"></span>
+        <span id="api-status">Connecting…</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════ CONTENT -->
+  <div id="content">
+
+    <!-- ── LISTINGS ── -->
+    <div class="page-section active" id="page-listings">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Active Listings</div>
+          <div class="page-subtitle">Storage auction units from StorageTreasures</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary btn-sm" onclick="openScraperModal()">+ Scrape New</button>
+        </div>
+      </div>
+      <div class="refresh-bar" id="refresh-bar">
+        <span id="refresh-last">—</span>
+        <span style="color:var(--border)">·</span>
+        <label class="refresh-toggle-label">
+          <input type="checkbox" id="refresh-toggle" checked onchange="toggleAutoRefresh()">
+          Auto-refresh
+        </label>
+        <span id="refresh-countdown"></span>
+        <button class="btn btn-ghost btn-xs" style="margin-left:auto" onclick="loadListings()">↻ Refresh now</button>
+      </div>
+      <div class="page-body">
+        <div class="stats-strip" id="ls-stats"></div>
+        <div class="filters-bar">
+          <select class="f-select" id="f-status" onchange="applyFilters()">
+            <option value="">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="won">Won</option>
+            <option value="lost">Lost</option>
+            <option value="skipped">Skipped</option>
+            <option value="watched">⭐ Watchlist</option>
+          </select>
+          <select class="f-select" id="f-rec" onchange="applyFilters()">
+            <option value="">All AI Recs</option>
+            <option value="buy">Buy (A+/A)</option>
+            <option value="watch">Watch (B)</option>
+            <option value="risky">Risky (C)</option>
+            <option value="skip">Skip (D)</option>
+          </select>
+          <input class="f-input" id="f-search" placeholder="🔍  Search facility, city, state…" oninput="applyFilters()">
+        </div>
+        <div id="listings-grid" class="listings-grid"></div>
+      </div>
+    </div>
+
+    <!-- ── WATCHLIST ── -->
+    <div class="page-section" id="page-watchlist">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Watchlist</div>
+          <div class="page-subtitle">Listings you've starred for closer review</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="loadListings()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="page-body">
+        <div class="filters-bar">
+          <select class="f-select" id="wl-rec" onchange="renderWatchlist()">
+            <option value="">All AI Recs</option>
+            <option value="buy">Buy (A+/A)</option>
+            <option value="watch">Watch (B)</option>
+            <option value="risky">Risky (C)</option>
+            <option value="skip">Skip (D)</option>
+          </select>
+          <input class="f-input" id="wl-search" placeholder="🔍  Search facility, city, state…" oninput="renderWatchlist()">
+        </div>
+        <div id="watchlist-grid" class="listings-grid"></div>
+      </div>
+    </div>
+
+    <!-- ── P&L ── -->
+    <div class="page-section" id="page-pnl">
+      <div class="page-header">
+        <div>
+          <div class="page-title">P&amp;L Tracker</div>
+          <div class="page-subtitle">Profit and loss across all purchased units</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="loadPnL()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="page-body">
+        <div class="stats-strip" id="pnl-stats"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Unit</th>
+                <th>Location</th>
+                <th>Size</th>
+                <th>Purchase</th>
+                <th>Add'l Costs</th>
+                <th>Revenue</th>
+                <th>Net Profit</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="pnl-tbody">
+              <tr><td colspan="8"><div class="loading-box"><div class="spin"></div> Loading…</div></td></tr>
+            </tbody>
+          </table>
+          <div id="pnl-empty" class="empty-state" style="display:none; border:none; border-top:1px solid var(--border); border-radius:0;">
+            <div class="empty-icon">💰</div>
+            <div class="empty-title">No P&L entries yet</div>
+            <div class="empty-desc">Win an auction, then open that listing and click "Won" to begin tracking profit and loss.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ANALYSIS ── -->
+    <div class="page-section" id="page-analysis">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Pattern Analysis</div>
+          <div class="page-subtitle">Discover what types of units make the most money</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="loadAnalysis()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="page-body">
+        <div id="analysis-content">
+          <div class="loading-box"><div class="spin"></div> Loading analysis…</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- ═══════════════════════════════════════ DETAIL DRAWER -->
+  <div id="drawer-overlay" onclick="closeDrawer()"></div>
+  <div id="detail-drawer">
+    <div class="drawer-header">
+      <button class="drawer-close" onclick="closeDrawer()">✕</button>
+      <div>
+        <div id="drawer-title">Unit Detail</div>
+        <div id="drawer-subtitle"></div>
+      </div>
+      <div id="drawer-actions"></div>
+    </div>
+    <div class="drawer-body">
+      <div class="gallery" id="gallery">
+        <div class="gallery-empty"><div class="gi">📷</div><div class="gt">No images available</div></div>
+      </div>
+      <div class="d-content">
+        <div id="d-ai-panel"></div>
+        <div class="d-grid" id="d-details"></div>
+        <div class="divider"></div>
+        <div class="d-section-title">🏷 Content Tags
+          <span style="font-size:11px;color:var(--text-3);font-weight:400;">click to toggle</span>
+        </div>
+        <div class="tags-wrap" id="d-tags"></div>
+        <div class="divider"></div>
+        <div class="d-section-title">💼 Bid Decision</div>
+        <div class="bid-card">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">My Max Bid</label>
+              <div class="inp-wrap">
+                <span class="inp-pfx">$</span>
+                <input class="form-input has-pfx" id="b-max" type="number" placeholder="0">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Actual Bid Placed</label>
+              <div class="inp-wrap">
+                <span class="inp-pfx">$</span>
+                <input class="form-input has-pfx" id="b-actual" type="number" placeholder="0">
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Winning Bid (post-auction)</label>
+              <div class="inp-wrap">
+                <span class="inp-pfx">$</span>
+                <input class="form-input has-pfx" id="b-winning" type="number" placeholder="0">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Outcome</label>
+              <select class="form-select" id="b-outcome">
+                <option value="">— pending —</option>
+                <option value="true">✅ Won it</option>
+                <option value="false">❌ Lost it</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label">Notes</label>
+            <textarea class="form-textarea" id="b-notes" placeholder="Why are you bidding? What stood out in the unit?"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" onclick="saveBid()">💾 Save Bid Record</button>
+            <button class="btn btn-ghost btn-sm" id="ai-btn" onclick="getAIRec()">✨ Get AI Rec</button>
+          </div>
+        </div>
+        <div id="d-description"></div>
+        <div class="divider"></div>
+        <div class="d-section-title">🗒 Notes</div>
+        <textarea class="form-textarea" id="listing-notes"
+          placeholder="Personal notes — what stood out, condition observations, price thoughts…"
+          onblur="saveListingNotes()"
+          style="margin-bottom:18px"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ SCRAPER MODAL -->
+  <div class="modal-backdrop" id="scraper-modal-backdrop" onclick="closeScraperModal()"></div>
+  <div class="modal-box" id="scraper-modal-box">
+    <div class="modal-head">
+      <h3>🔍 Scrape New Listings</h3>
+      <button class="modal-close-btn" onclick="closeScraperModal()">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.55">
+      Configure your search and click Start Scraping. Results appear in Listings when done.
+    </p>
+
+    <div class="scraper-section-label">Search by</div>
+    <div class="toggle-group" style="margin-bottom:14px">
+      <button class="toggle-btn active" id="sc-toggle-state" onclick="scToggle('state')">State</button>
+      <button class="toggle-btn"        id="sc-toggle-zip"   onclick="scToggle('zip')">Zip Code</button>
+    </div>
+
+    <div id="sc-state-section" class="form-group">
+      <label class="form-label">State</label>
+      <select class="form-input" id="sc-state" style="max-width:260px">
+        <option value="AL">AL — Alabama</option><option value="AK">AK — Alaska</option>
+        <option value="AZ">AZ — Arizona</option><option value="AR">AR — Arkansas</option>
+        <option value="CA">CA — California</option><option value="CO">CO — Colorado</option>
+        <option value="CT">CT — Connecticut</option><option value="DE">DE — Delaware</option>
+        <option value="DC">DC — Washington D.C.</option>
+        <option value="FL" selected>FL — Florida</option>
+        <option value="GA">GA — Georgia</option><option value="HI">HI — Hawaii</option>
+        <option value="ID">ID — Idaho</option><option value="IL">IL — Illinois</option>
+        <option value="IN">IN — Indiana</option><option value="IA">IA — Iowa</option>
+        <option value="KS">KS — Kansas</option><option value="KY">KY — Kentucky</option>
+        <option value="LA">LA — Louisiana</option><option value="ME">ME — Maine</option>
+        <option value="MD">MD — Maryland</option><option value="MA">MA — Massachusetts</option>
+        <option value="MI">MI — Michigan</option><option value="MN">MN — Minnesota</option>
+        <option value="MS">MS — Mississippi</option><option value="MO">MO — Missouri</option>
+        <option value="MT">MT — Montana</option><option value="NE">NE — Nebraska</option>
+        <option value="NV">NV — Nevada</option><option value="NH">NH — New Hampshire</option>
+        <option value="NJ">NJ — New Jersey</option><option value="NM">NM — New Mexico</option>
+        <option value="NY">NY — New York</option><option value="NC">NC — North Carolina</option>
+        <option value="ND">ND — North Dakota</option><option value="OH">OH — Ohio</option>
+        <option value="OK">OK — Oklahoma</option><option value="OR">OR — Oregon</option>
+        <option value="PA">PA — Pennsylvania</option><option value="RI">RI — Rhode Island</option>
+        <option value="SC">SC — South Carolina</option><option value="SD">SD — South Dakota</option>
+        <option value="TN">TN — Tennessee</option><option value="TX">TX — Texas</option>
+        <option value="UT">UT — Utah</option><option value="VT">VT — Vermont</option>
+        <option value="VA">VA — Virginia</option><option value="WA">WA — Washington</option>
+        <option value="WV">WV — West Virginia</option><option value="WI">WI — Wisconsin</option>
+        <option value="WY">WY — Wyoming</option>
+      </select>
+    </div>
+
+    <div id="sc-zip-section" style="display:none">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Zip Code</label>
+          <input class="form-input" id="sc-zip" placeholder="e.g. 33101" style="max-width:160px">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Radius</label>
+          <select class="form-input" id="sc-radius" style="max-width:160px">
+            <option value="0">Exact</option>
+            <option value="5">5 miles</option>
+            <option value="10">10 miles</option>
+            <option value="25">25 miles</option>
+            <option value="50" selected>50 miles</option>
+            <option value="100">100 miles</option>
+            <option value="150">150 miles</option>
+            <option value="200">200 miles</option>
+            <option value="500">500 miles</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top:14px">
+      <label class="form-label">Max Pages — <span id="sc-pages-val" style="font-weight:600;color:var(--text)">2</span> <span style="color:var(--text-3);font-size:12px">(~15 listings/page)</span></label>
+      <div class="range-row" style="max-width:360px">
+        <span style="font-size:12px;color:var(--text-3);min-width:12px">1</span>
+        <input type="range" id="sc-pages" min="1" max="20" value="2"
+          oninput="document.getElementById('sc-pages-val').textContent=this.value">
+        <span style="font-size:12px;color:var(--text-3);min-width:20px">20</span>
+      </div>
+    </div>
+
+    <div class="scraper-section-label">Auction types</div>
+    <div class="checkbox-grid" id="sc-types">
+      <label class="checkbox-label"><input type="checkbox" value="1" checked> Lien</label>
+      <label class="checkbox-label"><input type="checkbox" value="3" checked> Manager Special</label>
+      <label class="checkbox-label"><input type="checkbox" value="2" checked> Private Seller</label>
+      <label class="checkbox-label"><input type="checkbox" value="4" checked> Charity</label>
+    </div>
+
+    <div id="sc-result"></div>
+
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-sm" onclick="closeScraperModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="sc-btn" onclick="runScraper()">🔍 Start Scraping</button>
+    </div>
+  </div>
+
+  <div id="toasts"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  STORAGE SCOUT — DASHBOARD JS
+// ══════════════════════════════════════════════════════════════
+
+const API = window.location.origin;
+
+// ── STATE ─────────────────────────────────────────────────────
+const S = {
+  page: 'listings',
+  listings: [],
+  filtered: [],
+  listing: null,
+  imgIdx: 0,
+  bidRecord: null,
+  pnl: [],
+  charts: {},
+};
+
+const TAG_MAP = {
+  furniture:'🛋', electronics:'📺', tools:'🔧',
+  clothing:'👕', boxes:'📦', appliances:'🧊',
+  vehicles:'🚗', collectibles:'🏺', mixed:'🎭', junk:'🗑'
+};
+const ALL_TAGS = Object.keys(TAG_MAP);
+
+// ── NAVIGATION ────────────────────────────────────────────────
+function navigate(page) {
+  S.page = page;
+  document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(el => el.classList.remove('active'));
+  document.getElementById(`page-${page}`)?.classList.add('active');
+  document.querySelector(`.sb-item[data-page="${page}"]`)?.classList.add('active');
+  if (page === 'listings')  loadListings();
+  if (page === 'watchlist') { if (!S.listings.length) loadListings(); else renderWatchlist(); }
+  if (page === 'pnl')       loadPnL();
+  if (page === 'analysis')  loadAnalysis();
+}
+
+document.querySelectorAll('.sb-item').forEach(el => {
+  el.addEventListener('click', () => navigate(el.dataset.page));
+});
+
+// ── TOAST ─────────────────────────────────────────────────────
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3300);
+}
+
+// ── API ───────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const r = await fetch(API + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  if (!r.ok) {
+    const t = await r.text().catch(() => r.statusText);
+    throw new Error(t || r.statusText);
+  }
+  return r.json();
+}
+
+// ── AUTO-REFRESH ──────────────────────────────────────────────
+const REFRESH = {
+  enabled:       true,
+  lastRefreshed: null,
+  nextAt:        null,
+  _timer:        null,
+  _countTimer:   null,
+};
+
+function _scheduleRefresh() {
+  clearTimeout(REFRESH._timer);
+  clearInterval(REFRESH._countTimer);
+  if (!REFRESH.enabled) { _updateRefreshBar(); return; }
+
+  // If any listing ends within 2 hours → refresh every 5 min, else every 3 hrs
+  const now = Date.now();
+  const hasSoon = S.listings.some(l => {
+    if (!l.auction_end_time) return false;
+    const ms = new Date(l.auction_end_time) - now;
+    return ms > 0 && ms < 7200000;
+  });
+  const interval = hasSoon ? 5 * 60 * 1000 : 3 * 60 * 60 * 1000;
+  REFRESH.nextAt = new Date(now + interval);
+
+  REFRESH._timer = setTimeout(async () => {
+    await loadListings();
+  }, interval);
+
+  _updateRefreshBar();
+  REFRESH._countTimer = setInterval(_updateRefreshBar, 30000);
+}
+
+function _updateRefreshBar() {
+  const lastEl  = document.getElementById('refresh-last');
+  const countEl = document.getElementById('refresh-countdown');
+  if (!lastEl) return;
+
+  lastEl.textContent = REFRESH.lastRefreshed
+    ? `Refreshed ${_ago(REFRESH.lastRefreshed)}`
+    : 'Not yet refreshed';
+
+  if (!REFRESH.enabled || !REFRESH.nextAt) {
+    countEl.textContent = '';
+  } else {
+    const msLeft  = REFRESH.nextAt - Date.now();
+    const minLeft = Math.ceil(msLeft / 60000);
+    const label   = minLeft >= 60
+      ? `${Math.floor(minLeft / 60)}h ${minLeft % 60}m`
+      : `${minLeft}m`;
+    countEl.textContent = `· next in ${label}`;
+  }
+}
+
+function toggleAutoRefresh() {
+  REFRESH.enabled = document.getElementById('refresh-toggle').checked;
+  _scheduleRefresh();
+}
+
+function _ago(date) {
+  const sec = Math.floor((Date.now() - date) / 1000);
+  if (sec <  60) return 'just now';
+  if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
+  return `${Math.floor(sec / 3600)}h ago`;
+}
+
+// ── LISTINGS PAGE ─────────────────────────────────────────────
+async function loadListings() {
+  const grid = document.getElementById('listings-grid');
+  grid.innerHTML = `<div class="loading-box" style="grid-column:1/-1"><div class="spin"></div> Loading listings…</div>`;
+  try {
+    const data = await api('/api/listings?limit=200');
+    S.listings = data.items || [];
+    S.filtered = [...S.listings];
+    const active  = S.listings.filter(l => l.status === 'active').length;
+    const watched = S.listings.filter(l => l.watched).length;
+    document.getElementById('sb-count').textContent          = active  || '—';
+    document.getElementById('sb-watchlist-count').textContent = watched || '—';
+    renderListingStats();
+    renderGrid();
+    if (S.page === 'watchlist') renderWatchlist();
+    REFRESH.lastRefreshed = new Date();
+    _scheduleRefresh();
+  } catch (e) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-icon">⚠️</div>
+      <div class="empty-title">Could not load listings</div>
+      <div class="empty-desc">${esc(e.message)}.<br>Ensure the API server is running on port 8000.</div>
+    </div>`;
+  }
+}
+
+function renderListingStats() {
+  const ls = S.listings;
+  const active  = ls.filter(l => l.status === 'active').length;
+  const won     = ls.filter(l => l.status === 'won').length;
+  const lost    = ls.filter(l => l.status === 'lost').length;
+  const buy     = ls.filter(l => l.ai_recommendation?.recommendation === 'buy').length;
+  document.getElementById('ls-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total Listings</div><div class="stat-value">${ls.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Active Auctions</div><div class="stat-value blue">${active}</div></div>
+    <div class="stat-card"><div class="stat-label">Units Won</div><div class="stat-value green">${won}</div></div>
+    <div class="stat-card"><div class="stat-label">Units Lost</div><div class="stat-value">${lost}</div></div>
+    <div class="stat-card"><div class="stat-label">AI "Buy" Recs</div><div class="stat-value amber">${buy}</div></div>
+  `;
+}
+
+function applyFilters() {
+  const status = document.getElementById('f-status').value;
+  const rec    = document.getElementById('f-rec').value;
+  const q      = document.getElementById('f-search').value.toLowerCase();
+  S.filtered = S.listings.filter(l => {
+    if (status === 'watched') { if (!l.watched) return false; }
+    else if (status && l.status !== status) return false;
+    if (rec && l.ai_recommendation?.recommendation !== rec) return false;
+    if (q) {
+      const hay = `${l.facility_name||''} ${l.city||''} ${l.state||''} ${l.unit_number||''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  renderGrid();
+}
+
+function _updateWatchBadge() {
+  const count = S.listings.filter(l => l.watched).length;
+  const el = document.getElementById('sb-watchlist-count');
+  if (el) el.textContent = count || '—';
+}
+
+function renderWatchlist() {
+  const grid = document.getElementById('watchlist-grid');
+  if (!grid) return;
+  const rec = document.getElementById('wl-rec')?.value || '';
+  const q   = (document.getElementById('wl-search')?.value || '').toLowerCase();
+  const items = S.listings.filter(l => {
+    if (!l.watched) return false;
+    if (rec && l.ai_recommendation?.recommendation !== rec) return false;
+    if (q) {
+      const hay = `${l.facility_name||''} ${l.city||''} ${l.state||''} ${l.unit_number||''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  if (!items.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-icon">⭐</div>
+      <div class="empty-title">No watched listings</div>
+      <div class="empty-desc">Click the ☆ star on any listing card to add it to your watchlist.</div>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = items.map(listingCard).join('');
+}
+
+function renderGrid() {
+  const grid = document.getElementById('listings-grid');
+  if (!S.filtered.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-icon">🏪</div>
+      <div class="empty-title">No listings found</div>
+      <div class="empty-desc">Run the scraper to import listings from StorageTreasures, or clear your filters to see all units.</div>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = S.filtered.map(listingCard).join('');
+}
+
+function getTier(pct) {
+  if (pct >= 85) return 'A+';
+  if (pct >= 70) return 'A';
+  if (pct >= 55) return 'B';
+  if (pct >= 40) return 'C';
+  return 'D';
+}
+
+function listingCard(l) {
+  const rec   = l.ai_recommendation;
+  const rType = rec?.recommendation || 'none';
+  const conf  = rec ? Math.round(rec.confidence_score * 100) : null;
+  const tier  = conf !== null ? getTier(conf) : null;
+  const end   = l.auction_end_time ? timeLeft(l.auction_end_time) : null;
+  const endCls = !end ? 'ended' : (end.includes('m') && !end.includes('h') && !end.includes('d')) ? 'urgent' : '';
+
+  // Ending soon: auction ends within 2 hours and hasn't ended yet
+  const msLeft = l.auction_end_time ? (new Date(l.auction_end_time) - new Date()) : -1;
+  const endingSoon = msLeft > 0 && msLeft < 7200000;
+
+  const imgHtml = (l.images?.length)
+    ? `<img src="${esc(l.images[0].url)}" loading="lazy" onerror="this.style.display='none'">`
+    : `<div class="card-thumb-placeholder"><div class="thumb-icon">📦</div><div class="thumb-size">${esc(l.unit_size||'?')}</div></div>`;
+
+  return `<div class="listing-card" onclick="openListing(${l.id})">
+    <div class="card-thumb">
+      ${imgHtml}
+      <div class="rec-badge ${rType}">
+        ${rType === 'none' ? '— no rec' : (tier || rType.toUpperCase())}
+        ${conf !== null ? `<span style="opacity:.85">${conf}%</span>` : ''}
+      </div>
+      <div class="time-badge ${endCls}">${end || 'Ended'}</div>
+      <button class="card-watch-btn${l.watched ? ' watched' : ''}"
+        onclick="toggleWatch(${l.id}, event)"
+        title="${l.watched ? 'Remove from watchlist' : 'Add to watchlist'}">
+        ${l.watched ? '★' : '☆'}
+      </button>
+      ${endingSoon ? '<div class="ending-soon-banner">⚡ Ending Soon</div>' : ''}
+    </div>
+    <div class="card-body">
+      <div class="card-facility">${esc(l.facility_name || 'Unknown Facility')}</div>
+      <div class="card-location">📍 ${esc(l.city||'')}${l.state ? ', '+l.state : ''}</div>
+      <div class="card-row">
+        <div>
+          <div class="card-bid-amount">${l.current_bid != null ? '$'+fmt(l.current_bid) : '—'}</div>
+          <div class="card-bid-label">Current Bid</div>
+        </div>
+        <span class="status-pill ${l.status}">${l.status}</span>
+      </div>
+    </div>
+    <div class="card-footer">
+      <span class="card-unit-size">${esc(l.unit_size||'?')}</span>
+      <span class="card-bid-count">${l.bid_count||0} bid${l.bid_count!==1?'s':''}</span>
+      <button class="i-bid-btn${l.has_bid ? ' placed' : ''}" onclick="markBidPlaced(${l.id}, event)">
+        ${l.has_bid ? '✓ BID PLACED' : 'I Bid This'}
+      </button>
+    </div>
+  </div>`;
+}
+
+// ── DETAIL DRAWER ─────────────────────────────────────────────
+async function openListing(id) {
+  try {
+    const l = await api(`/api/listings/${id}`);
+    S.listing = l; S.imgIdx = 0; S.bidRecord = null;
+    renderDrawer(l);
+    // try to load existing bid record
+    try { S.bidRecord = await api(`/api/bidding/listing/${id}`); fillBidForm(S.bidRecord); }
+    catch (_) {}
+    document.getElementById('detail-drawer').classList.add('open');
+    document.getElementById('drawer-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  } catch (e) { toast('Failed to load listing: '+e.message, 'error'); }
+}
+
+function closeDrawer() {
+  document.getElementById('detail-drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  S.listing = null;
+}
+
+function renderDrawer(l) {
+  document.getElementById('drawer-title').textContent = l.facility_name || 'Unknown Facility';
+  document.getElementById('drawer-subtitle').textContent =
+    [l.city, l.state].filter(Boolean).join(', ') +
+    (l.unit_number ? ` · Unit ${l.unit_number}` : '') +
+    (l.unit_size   ? ` · ${l.unit_size}` : '');
+
+  document.getElementById('drawer-actions').innerHTML = `
+    ${l.url ? `<a href="${esc(l.url)}" target="_blank" rel="noopener" class="btn btn-ghost btn-xs">View on ST →</a>` : ''}
+    <button id="drawer-watch-btn"
+      class="btn btn-xs ${l.watched ? 'btn-amber' : 'btn-ghost'}"
+      onclick="toggleDrawerWatch(${l.id})">
+      ${l.watched ? '★ Watching' : '☆ Watch'}
+    </button>
+    <button class="btn btn-ghost btn-xs" onclick="setStatus(${l.id},'skipped')">Skip</button>
+    <button class="btn btn-success btn-xs" onclick="setStatus(${l.id},'won')">Won ✓</button>
+    <button class="btn btn-danger btn-xs" onclick="setStatus(${l.id},'lost')">Lost ✗</button>
+  `;
+
+  renderGallery(l.images || []);
+  renderAIPanel(l.ai_recommendation);
+  renderDetails(l);
+  renderTags(l.tags || [], l.id);
+
+  // description — collapsible, closed by default
+  const descEl = document.getElementById('d-description');
+  descEl.innerHTML = l.description
+    ? `<details class="signals-details" style="margin-bottom:18px">
+        <summary class="signals-summary">📝 Description</summary>
+        <div style="padding:10px 12px;font-size:13px;color:var(--text-2);line-height:1.65;white-space:pre-line">${esc(l.description)}</div>
+       </details>`
+    : '';
+
+  // notes
+  const notesEl = document.getElementById('listing-notes');
+  if (notesEl) notesEl.value = l.notes || '';
+
+  // clear bid form
+  ['b-max','b-actual','b-winning','b-notes'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('b-outcome').value = '';
+}
+
+// gallery
+function renderGallery(images) {
+  const g = document.getElementById('gallery');
+  if (!images.length) {
+    g.innerHTML = `<div class="gallery-empty"><div class="gi">📷</div><div class="gt">No images available</div></div>`;
+    return;
+  }
+  const img = images[S.imgIdx];
+  const nav = images.length > 1;
+  const dots = images.length > 1
+    ? `<div class="g-thumbs">${images.map((_,i) =>
+        `<div class="g-dot${i===S.imgIdx?' active':''}" onclick="goImg(${i})"></div>`
+      ).join('')}</div>` : '';
+  const loadBtn = S.listing
+    ? `<button class="load-photos-btn" id="load-photos-btn" onclick="loadAllPhotos(${S.listing.id})">📷 Load All Photos</button>`
+    : '';
+  g.innerHTML = `
+    <img src="${esc(img.url)}" alt="Unit photo"
+      onerror="this.parentNode.innerHTML='<div class=gallery-empty><div class=gi>📷</div><div class=gt>Image unavailable</div></div>'">
+    ${nav ? `<button class="g-nav g-prev" onclick="goImg(${(S.imgIdx-1+images.length)%images.length})">◀</button>
+             <button class="g-nav g-next" onclick="goImg(${(S.imgIdx+1)%images.length})">▶</button>` : ''}
+    ${images.length > 1 ? `<div class="g-counter">${S.imgIdx+1} / ${images.length}</div>` : ''}
+    ${dots}
+    ${loadBtn}
+  `;
+}
+function goImg(i) {
+  S.imgIdx = i;
+  renderGallery(S.listing?.images || []);
+}
+
+// AI panel
+function renderAIPanel(rec) {
+  const el = document.getElementById('d-ai-panel');
+  if (!rec) {
+    el.innerHTML = `<div class="ai-panel none">
+      <div class="ai-panel-top"><span style="font-size:13px;font-weight:600;color:var(--text-2)">✨ No AI Recommendation</span></div>
+      <div style="font-size:12.5px;color:var(--text-3)">Click <strong>Get AI Rec</strong> to generate a buy / watch / skip recommendation based on unit data and your historical win/loss patterns.</div>
+    </div>`;
+    return;
+  }
+  const t    = rec.recommendation;
+  const conf = Math.round((rec.confidence_score || 0) * 100);
+
+  // Parse reasoning: new format is JSON array [{label, delta}], old is pipe-separated string
+  let signalFactors = [];
+  let summaryLabel  = '';
+  try {
+    const parsed = JSON.parse(rec.reasoning || '[]');
+    if (Array.isArray(parsed) && parsed.length) {
+      summaryLabel  = parsed[0].label || '';
+      signalFactors = parsed.slice(1);
+    }
+  } catch (_) {
+    // fallback: old pipe-separated format
+    const parts = (rec.reasoning || '').split(' | ').filter(Boolean);
+    summaryLabel  = parts[0] || '';
+    signalFactors = parts.slice(1).map(s => ({ label: s, delta: null }));
+  }
+
+  const signalsHtml = signalFactors.length ? `
+    <details class="signals-details">
+      <summary class="signals-summary">Why this score?</summary>
+      <div class="signals-body">
+        ${signalFactors.map(f => {
+          const pos  = f.delta !== null && f.delta > 0;
+          const neg  = f.delta !== null && f.delta < 0;
+          const icon = pos ? '✓' : neg ? '✗' : '·';
+          const cls  = pos ? 'pos' : neg ? 'neg' : '';
+          const dStr = f.delta !== null ? (pos ? '+'+f.delta : String(f.delta)) : '';
+          return `<div class="signal-row">
+            <span class="signal-icon" style="color:${pos?'var(--green)':neg?'var(--red)':'var(--text-3)'}">${icon}</span>
+            <span class="signal-label">${esc(f.label)}</span>
+            ${dStr ? `<span class="signal-delta ${cls}">${dStr}</span>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </details>` : '';
+
+  const maxBid = calcMaxBid(S.listing, conf);
+  const maxBidHtml = maxBid != null
+    ? `$${maxBid.toLocaleString()} <span style="font-size:10.5px;font-weight:400;color:inherit;opacity:.75">(${getTier(conf)} tier)</span>`
+    : t === 'skip' ? `<span style="color:var(--red)">Don't bid</span>` : '—';
+
+  el.innerHTML = `<div class="ai-panel ${t}">
+    <div class="ai-panel-top">
+      <span class="ai-rec-label ${t}">${t.toUpperCase()}</span>
+      <div class="conf-bar-wrap"><div class="conf-bar ${t}" style="width:${conf}%"></div></div>
+      <span class="conf-pct">${conf}% confident</span>
+    </div>
+    <div class="ai-vals">
+      <div class="ai-val-item">Estimated Value
+        <strong>${rec.estimated_value ? '$'+rec.estimated_value.toLocaleString() : '—'}</strong>
+      </div>
+      <div class="ai-val-item">Suggested Max Bid
+        <strong>${maxBidHtml}</strong>
+      </div>
+    </div>
+    ${signalsHtml}
+  </div>`;
+}
+
+function renderDetails(l) {
+  document.getElementById('d-details').innerHTML = `
+    <div>
+      <div class="d-label">Current Bid</div>
+      <div class="d-value big">${l.current_bid != null ? '$'+fmt(l.current_bid) : '—'}</div>
+    </div>
+    <div>
+      <div class="d-label">Bid Count</div>
+      <div class="d-value">${l.bid_count||0} bid${l.bid_count!==1?'s':''}</div>
+    </div>
+    <div>
+      <div class="d-label">Unit Size</div>
+      <div class="d-value">${esc(l.unit_size||'—')}</div>
+    </div>
+    <div>
+      <div class="d-label">Auction Ends</div>
+      <div class="d-value">${l.auction_end_time ? timeLeft(l.auction_end_time) : '—'}</div>
+    </div>
+    <div class="d-field-full">
+      <div class="d-label">Facility</div>
+      <div class="d-value">${esc(l.facility_address || l.facility_name || '—')}</div>
+    </div>
+    <div>
+      <div class="d-label">City / State</div>
+      <div class="d-value">${esc([l.city, l.state].filter(Boolean).join(', ') || '—')}</div>
+    </div>
+    <div>
+      <div class="d-label">Zip Code</div>
+      <div class="d-value">${esc(l.zip_code||'—')}</div>
+    </div>
+    <div>
+      <div class="d-label">Status</div>
+      <div class="d-value"><span class="status-pill ${l.status}">${l.status}</span></div>
+    </div>
+  `;
+}
+
+function renderTags(activeTags, listingId) {
+  const active = new Set(activeTags.map(t => t.tag));
+  document.getElementById('d-tags').innerHTML = ALL_TAGS.map(tag =>
+    `<button class="tag-btn${active.has(tag)?' active':''}" onclick="toggleTag(${listingId},'${tag}',this)">
+      ${TAG_MAP[tag]} ${tag}
+    </button>`
+  ).join('');
+}
+
+async function toggleTag(lid, tag, btn) {
+  btn.classList.toggle('active');
+  toast(`Tag "${tag}" ${btn.classList.contains('active') ? 'added' : 'removed'}`, 'info');
+  // TODO: wire to POST /api/listings/{id}/tags endpoint
+}
+
+// ── DRAWER WATCH TOGGLE ───────────────────────────────────────
+async function toggleDrawerWatch(id) {
+  try {
+    const res = await api(`/api/listings/${id}/watch`, { method: 'PATCH' });
+    if (S.listing) S.listing.watched = res.watched;
+    const idx = S.listings.findIndex(l => l.id === id);
+    if (idx !== -1) S.listings[idx].watched = res.watched;
+    const btn = document.getElementById('drawer-watch-btn');
+    if (btn) {
+      btn.className = `btn btn-xs ${res.watched ? 'btn-amber' : 'btn-ghost'}`;
+      btn.textContent = res.watched ? '★ Watching' : '☆ Watch';
+    }
+    _updateWatchBadge();
+    applyFilters();
+    if (S.page === 'watchlist') renderWatchlist();
+    toast(res.watched ? '⭐ Added to watchlist' : 'Removed from watchlist', 'info');
+  } catch (e) { toast('Failed: ' + e.message, 'error'); }
+}
+
+// ── LOAD ALL PHOTOS ───────────────────────────────────────────
+async function loadAllPhotos(id) {
+  const btn = document.getElementById('load-photos-btn');
+  if (btn) { btn.textContent = '⏳ Loading…'; btn.disabled = true; }
+  try {
+    const res = await api(`/api/listings/${id}/fetch-images`, { method: 'POST' });
+    if (S.listing) {
+      S.listing.images = res.images;
+      S.imgIdx = 0;
+      renderGallery(S.listing.images);
+    }
+    toast(`${res.images.length} photo${res.images.length !== 1 ? 's' : ''} loaded`, 'success');
+  } catch (e) {
+    if (btn) { btn.textContent = '📷 Load All Photos'; btn.disabled = false; }
+    toast('Failed to load photos: ' + e.message, 'error');
+  }
+}
+
+// ── MAX BID CALCULATOR ────────────────────────────────────────
+function calcMaxBid(listing, conf) {
+  if (!listing) return null;
+  const tier = getTier(conf);
+  const pcts = { 'A+': 0.35, 'A': 0.28, 'B': 0.20, 'C': 0.12 };
+  const pct  = pcts[tier];
+  if (!pct) return null;  // D tier = don't bid
+
+  // Base value from unit size
+  const norm = (listing.unit_size || '').toLowerCase().replace(/\s/g, '');
+  const sizeMap = [
+    ['10x20', 2000], ['20x10', 2000],
+    ['10x15', 1500], ['15x10', 1500],
+    ['10x10', 1000],
+    ['5x10',   500], ['10x5',  500],
+    ['5x5',    200],
+  ];
+  let base = 400; // fallback for unknown sizes
+  for (const [pat, val] of sizeMap) {
+    if (norm.includes(pat)) { base = val; break; }
+  }
+
+  // Keyword content multiplier from description
+  const desc = (listing.description || '').toLowerCase();
+  let mult = 1.0;
+  if (/tools|toolbox|dewalt|milwaukee|craftsman|electronics|tv|laptop|gaming/.test(desc)) mult += 0.30;
+  if (/furniture|dresser|couch/.test(desc)) mult += 0.10;
+  if (/clothes|clothing/.test(desc)) mult -= 0.20;
+
+  return Math.max(1, Math.round(base * mult * pct));
+}
+
+async function saveListingNotes() {
+  if (!S.listing) return;
+  const notes = document.getElementById('listing-notes')?.value ?? null;
+  try {
+    await api(`/api/listings/${S.listing.id}/notes`, {
+      method: 'PATCH',
+      body: JSON.stringify({ notes: notes || null }),
+    });
+    S.listing.notes = notes;
+  } catch (e) { toast('Failed to save notes: ' + e.message, 'error'); }
+}
+
+async function setStatus(id, status) {
+  try {
+    await api(`/api/listings/${id}/status?status=${status}`, { method: 'PATCH' });
+    toast(`Status → ${status}`, 'success');
+    closeDrawer();
+    loadListings();
+  } catch (e) { toast('Failed: '+e.message, 'error'); }
+}
+
+async function getAIRec() {
+  if (!S.listing) return;
+  const btn = document.getElementById('ai-btn');
+  btn.innerHTML = '<span class="spin-white"></span> Analyzing…';
+  btn.disabled = true;
+  try {
+    const rec = await api(`/api/ai/recommend/${S.listing.id}`, { method: 'POST' });
+    renderAIPanel(rec);
+    toast('AI recommendation generated', 'success');
+  } catch (e) {
+    toast('AI error: '+e.message, 'error');
+  } finally {
+    btn.innerHTML = '✨ Get AI Rec';
+    btn.disabled = false;
+  }
+}
+
+// bid form
+function fillBidForm(r) {
+  if (!r) return;
+  if (r.max_bid)    document.getElementById('b-max').value = r.max_bid;
+  if (r.actual_bid) document.getElementById('b-actual').value = r.actual_bid;
+  if (r.winning_bid)document.getElementById('b-winning').value = r.winning_bid;
+  if (r.notes)      document.getElementById('b-notes').value = r.notes;
+  if (r.did_win != null) document.getElementById('b-outcome').value = String(r.did_win);
+}
+
+async function saveBid() {
+  if (!S.listing) return;
+  const maxBid = parseFloat(document.getElementById('b-max').value);
+  if (!maxBid) { toast('Enter a max bid amount', 'error'); return; }
+  const actual  = parseFloat(document.getElementById('b-actual').value)  || null;
+  const winning = parseFloat(document.getElementById('b-winning').value) || null;
+  const outcome = document.getElementById('b-outcome').value;
+  const notes   = document.getElementById('b-notes').value || null;
+  try {
+    if (S.bidRecord) {
+      const upd = {};
+      if (actual  != null) upd.actual_bid  = actual;
+      if (winning != null) upd.winning_bid = winning;
+      if (outcome !== '')  upd.did_win     = outcome === 'true';
+      if (notes)           upd.notes       = notes;
+      S.bidRecord = await api(`/api/bidding/${S.bidRecord.id}`, { method:'PATCH', body:JSON.stringify(upd) });
+    } else {
+      S.bidRecord = await api('/api/bidding/', {
+        method: 'POST',
+        body: JSON.stringify({ listing_id: S.listing.id, max_bid: maxBid, actual_bid: actual, notes }),
+      });
+    }
+    toast('Bid record saved ✓', 'success');
+  } catch (e) { toast('Save failed: '+e.message, 'error'); }
+}
+
+// ── P&L PAGE ──────────────────────────────────────────────────
+async function loadPnL() {
+  document.getElementById('pnl-tbody').innerHTML =
+    `<tr><td colspan="8"><div class="loading-box"><div class="spin"></div> Loading…</div></td></tr>`;
+  try {
+    const [entries, summary] = await Promise.all([
+      api('/api/pnl/'),
+      api('/api/pnl/summary'),
+    ]);
+    S.pnl = entries;
+    renderPnLStats(summary);
+    renderPnLTable(entries);
+  } catch (e) {
+    document.getElementById('pnl-tbody').innerHTML = '';
+    toast('P&L load failed: '+e.message, 'error');
+  }
+}
+
+function renderPnLStats(s) {
+  const nc = (s.total_net_profit || 0) >= 0 ? 'green' : 'red';
+  document.getElementById('pnl-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total Units</div><div class="stat-value">${s.total_units||0}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Invested</div><div class="stat-value">$${fmt(s.total_invested||0)}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value">$${fmt(s.total_revenue||0)}</div></div>
+    <div class="stat-card"><div class="stat-label">Net Profit</div><div class="stat-value ${nc}">$${fmt(s.total_net_profit||0)}</div></div>
+    <div class="stat-card">
+      <div class="stat-label">Win Rate</div>
+      <div class="stat-value blue">${s.total_units ? Math.round(s.win_rate*100)+'%' : '—'}</div>
+      <div class="stat-sub">${s.win_count||0}W · ${s.loss_count||0}L</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Per Unit</div>
+      <div class="stat-value ${(s.avg_net_per_unit||0)>=0?'green':'red'}">
+        ${s.total_units ? '$'+fmt(s.avg_net_per_unit||0) : '—'}
+      </div>
+    </div>
+  `;
+}
+
+function renderPnLTable(entries) {
+  const tbody = document.getElementById('pnl-tbody');
+  const empty = document.getElementById('pnl-empty');
+  if (!entries.length) { tbody.innerHTML = ''; empty.style.display = 'flex'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = entries.map(e => {
+    const net    = e.net_profit || 0;
+    const costs  = ((e.cleanup_cost||0)+(e.transport_cost||0)+(e.other_costs||0));
+    const ncls   = net >= 0 ? 'pos' : 'neg';
+    const sign   = net >= 0 ? '+' : '';
+    return `<tr onclick="openListing(${e.listing_id})">
+      <td style="font-weight:600">Unit #${e.listing_id}</td>
+      <td style="color:var(--text-2)">—</td>
+      <td>—</td>
+      <td>$${fmt(e.purchase_price||0)}</td>
+      <td>$${fmt(costs)}</td>
+      <td>$${fmt(e.gross_revenue||0)}</td>
+      <td class="${ncls}">${sign}$${fmt(net)}</td>
+      <td><span class="status-pill ${net>=0?'won':'lost'}">${net>=0?'Profit':'Loss'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── ANALYSIS PAGE ─────────────────────────────────────────────
+async function loadAnalysis() {
+  const wrap = document.getElementById('analysis-content');
+  wrap.innerHTML = `<div class="loading-box"><div class="spin"></div> Loading analysis…</div>`;
+  try {
+    const [byTag, bySize, bidEff] = await Promise.all([
+      api('/api/analysis/win-loss-by-tag'),
+      api('/api/analysis/win-loss-by-size'),
+      api('/api/analysis/bid-efficiency'),
+    ]);
+    const pnlData = S.pnl.length ? S.pnl : await api('/api/pnl/');
+
+    if (!byTag.length && !bySize.length && !pnlData.length) {
+      wrap.innerHTML = `<div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <div class="empty-title">Not enough data yet</div>
+        <div class="empty-desc">Win a few auctions and record your P&L to unlock pattern analysis. The AI will learn from your results over time.</div>
+      </div>`;
+      return;
+    }
+
+    wrap.innerHTML = `<div class="charts-grid">
+      <div class="chart-card"><div class="chart-title">Win Rate by Content Tag</div><div class="chart-subtitle">% of profitable units per content type</div><div class="chart-wrap"><canvas id="c-wr-tag"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Avg Net Profit by Tag</div><div class="chart-subtitle">Average profit or loss per content category</div><div class="chart-wrap"><canvas id="c-np-tag"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Win Rate by Unit Size</div><div class="chart-subtitle">How unit dimensions affect profitability</div><div class="chart-wrap"><canvas id="c-wr-size"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Bid Efficiency</div><div class="chart-subtitle">Your max bid vs final winning price</div><div class="chart-wrap"><canvas id="c-bid-eff"></canvas></div></div>
+      <div class="chart-card full"><div class="chart-title">Cumulative Net Profit</div><div class="chart-subtitle">Running total of profit across all closed units</div><div class="chart-wrap short"><canvas id="c-pnl-time"></canvas></div></div>
+    </div>`;
+
+    // destroy old charts
+    Object.values(S.charts).forEach(c => c.destroy());
+    S.charts = {};
+
+    const baseOpts = (ylabel) => ({
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 } } },
+        y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 } },
+             title: { display: !!ylabel, text: ylabel, font: { size: 11 } } },
+      }
+    });
+
+    if (byTag.length) {
+      S.charts.wrtag = new Chart(document.getElementById('c-wr-tag'), {
+        type: 'bar',
+        data: {
+          labels: byTag.map(t => t.tag),
+          datasets: [{ label: 'Win Rate %',
+            data: byTag.map(t => Math.round(t.win_rate*100)),
+            backgroundColor: byTag.map(t => t.win_rate >= .5 ? 'rgba(16,185,129,.75)' : 'rgba(239,68,68,.75)'),
+            borderRadius: 4 }]
+        },
+        options: baseOpts('Win Rate (%)'),
+      });
+
+      S.charts.nptag = new Chart(document.getElementById('c-np-tag'), {
+        type: 'bar',
+        data: {
+          labels: byTag.map(t => t.tag),
+          datasets: [{ label: 'Avg Net Profit',
+            data: byTag.map(t => t.avg_net_profit),
+            backgroundColor: byTag.map(t => t.avg_net_profit >= 0 ? 'rgba(59,130,246,.75)' : 'rgba(239,68,68,.75)'),
+            borderRadius: 4 }]
+        },
+        options: baseOpts('Avg Net Profit ($)'),
+      });
+    }
+
+    if (bySize.length) {
+      S.charts.wrsize = new Chart(document.getElementById('c-wr-size'), {
+        type: 'bar',
+        data: {
+          labels: bySize.map(t => t.unit_size),
+          datasets: [{ label: 'Win Rate %',
+            data: bySize.map(t => Math.round(t.win_rate*100)),
+            backgroundColor: 'rgba(139,92,246,.75)',
+            borderRadius: 4 }]
+        },
+        options: baseOpts('Win Rate (%)'),
+      });
+    }
+
+    if (bidEff.length) {
+      S.charts.bideff = new Chart(document.getElementById('c-bid-eff'), {
+        type: 'scatter',
+        data: {
+          datasets: [
+            { label: 'Won', data: bidEff.filter(b=>b.did_win).map(b=>({x:b.winning_bid,y:b.max_bid})),
+              backgroundColor: 'rgba(16,185,129,.65)', pointRadius: 5 },
+            { label: 'Lost', data: bidEff.filter(b=>!b.did_win).map(b=>({x:b.winning_bid,y:b.max_bid})),
+              backgroundColor: 'rgba(239,68,68,.65)', pointRadius: 5 },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: true, labels: { boxWidth: 10, font: { size: 11 } } } },
+          scales: {
+            x: { grid:{color:'#f1f5f9'}, ticks:{font:{size:11}},
+                 title:{display:true,text:'Winning Bid ($)',font:{size:11}} },
+            y: { grid:{color:'#f1f5f9'}, ticks:{font:{size:11}},
+                 title:{display:true,text:'My Max Bid ($)',font:{size:11}} },
+          }
+        }
+      });
+    }
+
+    if (pnlData.length) {
+      const sorted = [...pnlData].sort((a,b) => a.id - b.id);
+      let cum = 0;
+      const cumVals = sorted.map(e => { cum += (e.net_profit||0); return Math.round(cum); });
+      S.charts.pnltime = new Chart(document.getElementById('c-pnl-time'), {
+        type: 'line',
+        data: {
+          labels: sorted.map((_,i) => `Unit ${i+1}`),
+          datasets: [{ label: 'Cumulative Net Profit',
+            data: cumVals,
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59,130,246,.08)',
+            fill: true, tension: 0.35, pointRadius: 4,
+            pointBackgroundColor: '#3b82f6' }]
+        },
+        options: {
+          ...baseOpts('Cumulative Profit ($)'),
+          plugins: { legend: { display: false } },
+        }
+      });
+    }
+
+  } catch (e) {
+    wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Analysis failed</div><div class="empty-desc">${esc(e.message)}</div></div>`;
+    toast('Analysis error: '+e.message, 'error');
+  }
+}
+
+// ── SCRAPER MODAL ─────────────────────────────────────────────
+function openScraperModal() {
+  document.getElementById('scraper-modal-backdrop').classList.add('open');
+  document.getElementById('scraper-modal-box').classList.add('open');
+  document.getElementById('sc-result').innerHTML = '';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeScraperModal() {
+  document.getElementById('scraper-modal-backdrop').classList.remove('open');
+  document.getElementById('scraper-modal-box').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ── WATCH / BID MARKERS ───────────────────────────────────────
+async function toggleWatch(id, e) {
+  e.stopPropagation();
+  try {
+    const res = await api(`/api/listings/${id}/watch`, { method: 'PATCH' });
+    const idx = S.listings.findIndex(l => l.id === id);
+    if (idx !== -1) S.listings[idx].watched = res.watched;
+    _updateWatchBadge();
+    applyFilters();
+    if (S.page === 'watchlist') renderWatchlist();
+    toast(res.watched ? '⭐ Added to watchlist' : 'Removed from watchlist', 'info');
+  } catch (err) { toast('Failed: ' + err.message, 'error'); }
+}
+
+async function markBidPlaced(id, e) {
+  e.stopPropagation();
+  try {
+    const res = await api(`/api/listings/${id}/bid-placed`, { method: 'POST' });
+    const idx = S.listings.findIndex(l => l.id === id);
+    if (idx !== -1) S.listings[idx].has_bid = res.has_bid;
+    applyFilters();
+    toast(res.has_bid ? '✓ Marked as bid placed' : 'Bid marker removed', 'info');
+  } catch (err) { toast('Failed: ' + err.message, 'error'); }
+}
+
+// ── SCRAPER PAGE ──────────────────────────────────────────────
+function scToggle(mode) {
+  document.getElementById('sc-toggle-state').classList.toggle('active', mode === 'state');
+  document.getElementById('sc-toggle-zip').classList.toggle('active',   mode === 'zip');
+  document.getElementById('sc-state-section').style.display = mode === 'state' ? '' : 'none';
+  document.getElementById('sc-zip-section').style.display   = mode === 'zip'   ? '' : 'none';
+}
+
+function _setScraperStatus(cls, html) {
+  document.getElementById('sc-result').innerHTML =
+    `<div class="scraper-status ${cls}">${html}</div>`;
+}
+
+async function runScraper() {
+  const isState = document.getElementById('sc-state-section').style.display !== 'none';
+  const state   = isState ? document.getElementById('sc-state').value.trim() : null;
+  const zip     = !isState ? document.getElementById('sc-zip').value.trim() : null;
+  const radius  = parseInt(document.getElementById('sc-radius')?.value) || 50;
+  const pages   = parseInt(document.getElementById('sc-pages').value)   || 5;
+  const types   = Array.from(
+    document.querySelectorAll('#sc-types input[type=checkbox]:checked')
+  ).map(c => c.value);
+
+  if (!isState && !zip) {
+    toast('Enter a zip code or switch to state search', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('sc-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Scraping…';
+  const t0 = Date.now();
+  _setScraperStatus('running', '⏳ Scraping StorageTreasures — this can take 30-90 seconds…');
+
+  try {
+    const result = await api('/api/scraper/run', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        state:         state || null,
+        zip_code:      zip   || null,
+        radius_miles:  radius,
+        max_pages:     pages,
+        auction_types: types,
+      }),
+    });
+    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+    _setScraperStatus('success',
+      `✅ Done in ${elapsed}s — <strong>${result.new_listings}</strong> new listings saved (${result.total_scraped} total scraped)`
+    );
+    toast(`Scrape complete: ${result.new_listings} new listings`, 'success');
+    setTimeout(closeScraperModal, 1500);
+    await loadListings();
+  } catch (e) {
+    _setScraperStatus('error', `❌ Scrape failed: ${esc(e.message)}`);
+    toast('Scrape error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 Start Scraping';
+  }
+}
+
+// ── UTILITIES ─────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmt(n) {
+  return Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+function timeLeft(iso) {
+  const diff = new Date(iso) - new Date();
+  if (diff <= 0) return null;
+  const d = Math.floor(diff/86400000);
+  const h = Math.floor((diff%86400000)/3600000);
+  const m = Math.floor((diff%3600000)/60000);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+(async () => {
+  try {
+    await api('/api/health');
+    document.getElementById('api-dot').style.animation = 'pulse 2s infinite';
+    document.getElementById('api-status').textContent = 'API connected';
+  } catch {
+    document.getElementById('api-dot').classList.add('offline');
+    document.getElementById('api-status').textContent = 'API offline';
+    toast('Cannot reach API at '+API, 'error');
+  }
+  loadListings();
+})();
+</script>
+</body>
+</html>

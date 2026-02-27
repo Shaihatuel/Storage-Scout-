@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+server.log
+server.pid
+auction_images/
+*.pyc
+.env
+.DS_Store
+=0.30.0
