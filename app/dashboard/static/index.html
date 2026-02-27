@@ -900,8 +900,8 @@
           </select>
           <input class="f-input" id="f-search" placeholder="🔍  Search facility, city, state…" oninput="applyFilters()">
           <div class="zip-filter-group">
-            <input class="f-input" id="f-zip" placeholder="📍 Zip code" style="max-width:110px" oninput="applyFilters()">
-            <select class="f-select" id="f-radius" onchange="applyFilters()" style="max-width:130px">
+            <input class="f-input" id="f-zip" placeholder="📍 Zip code" style="max-width:110px">
+            <select class="f-select" id="f-radius" style="max-width:130px">
               <option value="">Any distance</option>
               <option value="25">Within 25 mi</option>
               <option value="50">Within 50 mi</option>
@@ -909,6 +909,7 @@
               <option value="150">Within 150 mi</option>
               <option value="200">Within 200 mi</option>
             </select>
+            <button class="btn btn-primary btn-sm" onclick="applyDistanceFilter()">Apply</button>
           </div>
           <div class="auction-type-filters">
             <span class="atf-label">Type:</span>
