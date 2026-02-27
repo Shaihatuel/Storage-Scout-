@@ -7,3 +7,4 @@ auction_images/
 .env
 .DS_Store
 =0.30.0
+data/*.db
